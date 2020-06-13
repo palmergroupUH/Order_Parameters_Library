@@ -1,0 +1,30 @@
+# compiler
+
+#clean:
+       #rm *.so 
+
+FC = ifort #
+
+FFLAGS = -fPIC -shared
+
+SYSTEM_MOD = system_mod.f90 
+
+all: fortran_dcd_reader.so fortran_txt_reader.so fortran_xyz_reader.so  
+
+fortran_dcd_reader.so: dcd_reader_mod.f90  
+
+	$(FC) $(FFLAGS) $(SYSTEM_MOD) dcd_reader_mod.f90  -o fortran_dcd_reader.so  
+
+fortran_txt_reader.so: txt_reader_mod.f90  
+
+	$(FC) $(FFLAGS) $(SYSTEM_MOD) txt_reader_mod.f90  -o fortran_txt_reader.so 
+
+fortran_xyz_reader.so: xyz_reader_mod.f90  
+
+	$(FC) $(FFLAGS) $(SYSTEM_MOD) xyz_reader_mod.f90  -o fortran_xyz_reader.so 
+
+# print the variable
+#$(info $(FC))
+#
+
+

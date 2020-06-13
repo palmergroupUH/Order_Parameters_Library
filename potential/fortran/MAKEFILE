@@ -1,0 +1,22 @@
+# compiler
+
+#clean:
+       #rm *.so 
+
+FC = ifort #
+
+FFLAGS = -fPIC -shared
+
+SYSTEM_MOD = system_mod.f90 
+
+all: fortran_lj_pot.so 
+
+fortran_lj_pot.so: compute_lj_pot.f90  
+
+	$(FC) $(FFLAGS) $(SYSTEM_MOD) compute_lj_pot.f90  -o fortran_lj_pot.so
+
+# print the variable
+#$(info $(FC))
+#
+
+
