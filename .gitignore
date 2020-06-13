@@ -1,0 +1,8 @@
+IO/__pycache__/*  
+IO/fortran/*.mod 
+MC/__pycache__/*  
+MC/fortran/*.mod 
+potential/fortran/*.mod 
+FortranAPI.egg-info 
+*.pyc 
+*.mod 
