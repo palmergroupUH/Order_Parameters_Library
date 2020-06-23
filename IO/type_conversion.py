@@ -1,39 +1,54 @@
-import numpy as np 
-from ctypes import CDLL, POINTER, c_int, c_double,c_char_p,c_long,c_float,byref 
+import numpy as np
+from ctypes import c_int, c_double, c_char_p
 
-#-------------------------------------------------------------------------
-#                          Python data type into ctypes                   
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+#                          Python data type into ctypes
+# -------------------------------------------------------------------------
+
 
 def string_to_ctypes_string(string):
 
     strlength = c_int(len(string))
 
-    string_to_bytes = string.encode() 
+    string_to_bytes = string.encode()
 
-    string = c_char_p(string_to_bytes) 
+    string = c_char_p(string_to_bytes)
 
-    return string,strlength 
+    return string, strlength
 
-def int_to_ctypes_int(data): 
 
-    try: 
+def int_to_ctypes_int(data):
 
-        data = c_int(data) 
+    try:
 
-    except TypeError: 
+        data = c_int(data)
 
-        pass 
+    except TypeError:
 
-    return data 
+        pass
 
-def np_to_ctypes_array(array): 
+    return data
 
-    if ( type(array) == np.ndarray ): 
-    
-        return np.ctypeslib.as_ctypes(array)  
 
-    else: 
+def double_to_ctypes_double(data):
 
-        return None 
+    try:
 
+        data = c_double(data)
+
+    except TypeError:
+
+        pass
+
+    return data
+
+
+def np_to_ctypes_array(array):
+
+    if (type(array) == np.ndarray):
+
+        return np.ctypeslib.as_ctypes(array)
+
+    else:
+
+        return None

@@ -274,7 +274,7 @@ def call_read_dcd_header(dcdfile):
                             byref(total_atoms),
                             byref(total_frames))
 
-    return total_frames.value, total_atoms.value
+    return total_atoms.value, total_frames.value
 
 
 def call_read_dcd_xyz_box(dcdfile, current_frame, total_atoms, return_numpy):
@@ -313,6 +313,10 @@ def call_read_dcd_xyz_box(dcdfile, current_frame, total_atoms, return_numpy):
         return xyz, box
 
     else:
+
+        # convert to double precision
+        xyz = np.ctypeslib.as_ctypes(np.ctypeslib.as_array(xyz)
+                                     .astype(np.float64))
 
         return xyz, box
 
@@ -361,6 +365,10 @@ def call_read_dcd_xyz_box_in_chunk(dcdfile,
         return xyz, box
 
     else:
+
+        # convert to double precision
+        xyz = np.ctypeslib.as_ctypes(np.ctypeslib.as_array(xyz)
+                                       .astype(np.float64))
 
         return xyz, box
 
@@ -593,60 +601,73 @@ def call_read_xyz_xyz_box_chunk(xyzfile,
 
 
 # -------------------------------------------------------------------------
-#                          traj reader 
+#                          traj reader
 # -------------------------------------------------------------------------
 
 
-def read_header(filename):
+def call_read_header(filename):
 
     extension = os.path.splitext(filename)
 
-    if (extension==".xyz"):
+    if (extension[-1] == ".xyz"):
 
-        return call_read_xyz_header(filename) 
+        return call_read_xyz_header(filename)
 
-    elif(extension==".dcd"):
+    elif(extension[-1] == ".dcd"):
 
         return call_read_dcd_header(filename)
 
 
-def read_traj(filename,current_frame,total_atoms,return_numpy=True,xyz_keyword={"read_box": True}):
+def call_read_traj(filename,
+                   current_frame,
+                   total_atoms,
+                   return_numpy=True,
+                   xyz_keyword={"read_box": True}):
 
     extension = os.path.splitext(filename)
 
-    if (extension==".xyz"):
-        
-        read_box = xyz_keyword.get("read_box",False)
+    if (extension[-1] == ".xyz"):
 
-        return call_read_xyz_xyz_box(filename,current_frame,total_atoms,read_box,return_numpy)
+        read_box = xyz_keyword.get("read_box", False)
 
-    elif(extension==".dcd"):
-    
-        return call_read_dcd_xyz_box(filename,current_frame,total_atoms,return_numpy)
+        return call_read_xyz_xyz_box(filename,
+                                     current_frame,
+                                     total_atoms,
+                                     read_box,
+                                     return_numpy)
+
+    elif (extension[-1] == ".dcd"):
+
+        return call_read_dcd_xyz_box(filename,
+                                     current_frame,
+                                     total_atoms,
+                                     return_numpy)
 
 
-def read_chunk_traj(filename,start,num_configs,total_atoms,return_numpy=True,xyz_keyword={"read_box": True}):
-    
+def call_read_chunk_traj(filename,
+                         start,
+                         num_configs,
+                         total_atoms,
+                         return_numpy=True,
+                         xyz_keyword={"read_box": True}):
+
     extension = os.path.splitext(filename)
 
-    if (extension==".xyz"):
+    if (extension[-1] == ".xyz"):
 
-        read_box = xyz_keyword.get("read_box",False)
+        read_box = xyz_keyword.get("read_box", False)
 
         return call_read_xyz_xyz_box_chunk(filename,
                                            total_atoms,
                                            start,
                                            num_configs,
-                                           read_box, 
-                                           return_numpy=True)
+                                           read_box,
+                                           return_numpy)
 
-    elif (extension==".dcd"):
+    elif (extension[-1] == ".dcd"):
 
-        return call_read_dcd_xyz_box_in_chunk(filename, 
-                                              start_at,
+        return call_read_dcd_xyz_box_in_chunk(filename,
+                                              start,
                                               num_configs,
                                               total_atoms,
                                               return_numpy)
-
-
-
