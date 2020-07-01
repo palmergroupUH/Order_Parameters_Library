@@ -1,5 +1,5 @@
 import numpy as np
-from ctypes import c_int, c_double, c_char_p
+from ctypes import c_int, c_double, c_char_p, c_float
 
 # -------------------------------------------------------------------------
 #                          Python data type into ctypes
@@ -42,6 +42,18 @@ def double_to_ctypes_double(data):
 
     return data
 
+
+def float_to_ctypes_double(data):
+
+    try:
+
+        data = c_float(data)
+
+    except TypeError:
+
+        pass
+
+    return data
 
 def np_to_ctypes_array(array):
 

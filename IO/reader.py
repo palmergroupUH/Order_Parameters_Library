@@ -4,7 +4,6 @@ import multiprocessing as mp
 import os
 import sys
 import itertools
-import ctypes
 import logging
 from ctypes import CDLL, c_int, c_double, c_long, c_float, byref
 
@@ -16,13 +15,13 @@ from IO.type_conversion import string_to_ctypes_string,\
 
 # Third-party library:
 
-fortranlib_address = os.path.join(os.path.dirname(IO.__file__), "fortran")
+fortranlib_address = os.path.join(os.path.dirname(IO.__file__), "lib")
 
-dcd_lib = CDLL(os.path.join(fortranlib_address, "fortran_dcd_reader.so"))
+dcd_lib = CDLL(os.path.join(fortranlib_address, "libdcd_reader.so"))
 
-txt_lib = CDLL(os.path.join(fortranlib_address, "fortran_txt_reader.so"))
+txt_lib = CDLL(os.path.join(fortranlib_address, "libtxt_reader.so"))
 
-xyz_lib = CDLL(os.path.join(fortranlib_address, "fortran_xyz_reader.so"))
+xyz_lib = CDLL(os.path.join(fortranlib_address, "libxyz_reader.so"))
 
 # -------------------------------------------------------------------------
 #                         Parallel workload manager
