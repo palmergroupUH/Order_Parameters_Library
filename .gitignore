@@ -1,15 +1,28 @@
-FortranAPI.egg-info
-*.pyc 
-*.mod 
+# ignore all fortran/C/C++related compiled files
+*.mod
+*.so
+*.o
+*.out
+*.a
 
-IO/__pycache__/*.pyc
+# ignore all python related files: 
+__init__.py
+*.pyc
+*.ipynb
+__pycache__/
 
-IO/fortran/*.mod
+# git command 
+git_command_lst
 
-MC/__pycache__/*.pyc
+# ignore the txt file 
+*.txt
 
-MC/fortran/*.mod
+# ignore build folder 
+build/
 
-potential/fortran/*.mod
+# ignore distribution
+dist/*
+old/*
 
-
+# ignore the log file
+*.log
