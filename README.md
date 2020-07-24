@@ -1,4 +1,4 @@
-# An useful order parameter analysis library 
+# A usable and efficient order parameter library for condense matter analysis
 
 
 ## Features:
@@ -8,7 +8,5 @@
 * Python importable for analysis 
 
 * Modular design 
-
-
 
 
