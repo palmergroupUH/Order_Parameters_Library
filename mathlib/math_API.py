@@ -95,7 +95,7 @@ def compute_optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
     sin_phi = c_double(sin_phi) 
 
     Ylm_complex = np.ctypeslib.as_ctypes(np.zeros(25*2, dtype=np.float64))
-    
+
     sph_lib.call_optimized_Y12(byref(sin_theta),
                                byref(cos_theta),
                                byref(cos_phi), 

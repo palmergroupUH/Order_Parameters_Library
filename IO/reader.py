@@ -1,3 +1,45 @@
+##############################################################################
+
+# Python-force-field-parameterization-workflow: 
+# A Python Library for reading trajectory from MD or MC simulations of
+# various file formats: dcd, xyz, and txt
+
+#
+
+# Authors: Jingxiang Guo, Jeremy Palmer
+
+#
+
+# Python-force-field-parameterization-workflow is free software:
+# you can redistribute it and/or modify it under the terms of the
+# MIT License
+
+# You should have received a copy of the MIT License along with the package.
+
+##############################################################################
+
+
+
+"""
+A module for reading a trajectory from a MD or MC simulation.
+Supported trajectory file format: 
+1. *.txt 
+2. *.dcd
+3. *.lammpstraj
+
+Many trajectory file formats are supported including: dcd, xyz, and txt.
+The module allows a user to extract box and coordinates information from
+a trajectory in parallel by using the multiprocessing library
+
+The module also allows a user to read chunks of trajectory satisfying the
+limit set by buffer size. This can efficient if appropriate buffer size is
+set.
+
+Finally, the specific file extension can be used to identify either xyz or dcd
+trajectory and invoke its corresponding reader to parse a arbitrary trajectory 
+
+
+"""
 # Python standard library
 import numpy as np
 import multiprocessing as mp
@@ -13,14 +55,21 @@ from IO.type_conversion import string_to_ctypes_string,\
                                int_to_ctypes_int,\
                                np_to_ctypes_array
 
+import IO.check_file
+
 # Third-party library:
 
-fortranlib_address = os.path.join(os.path.dirname(IO.__file__), "lib")
+# get the dynamic library path from the fortranAPI IO module:
+fortranlib_address = os.path.join(os.path.dirname(IO.__file__),
+                                  "lib")
 
+# Load the dynamic library of dcd trajectory reader:
 dcd_lib = CDLL(os.path.join(fortranlib_address, "libdcd_reader.so"))
 
+# Load the dynamic library of txt file reader:
 txt_lib = CDLL(os.path.join(fortranlib_address, "libtxt_reader.so"))
 
+# Load the dynamic library of xyz trajectory reader:
 xyz_lib = CDLL(os.path.join(fortranlib_address, "libxyz_reader.so"))
 
 # -------------------------------------------------------------------------
@@ -29,6 +78,52 @@ xyz_lib = CDLL(os.path.join(fortranlib_address, "libxyz_reader.so"))
 
 
 def job_assignment(first, last, buffer_size):
+    """Determine the workload (number of configuraitons)
+       assigned for each core
+    
+    Parameters  
+
+    ----------
+
+    first: int
+
+        which configuration to start with in a trajectory  
+
+    last: int 
+
+        which configuration to end with in a trajectory 
+   
+    buffer_size: int
+
+        how many configurations to be read into memory per core at a time  
+ 
+    Returns
+
+    ----------
+
+    pointer_ary: np.ndarray  
+
+        pointer_ary tells which core should start reading which configuration
+
+    
+    work_load_ary: np.ndarray 
+
+        Total configurations that should be read  
+
+    Notes
+
+    ----------
+
+    This is used to initialize parallel processing of a large trajectory in
+    xyz, dcd, and txt file format
+
+    
+    Examples
+
+    ----------
+
+
+    """
 
     total_workload = last - first + 1
 
@@ -260,6 +355,11 @@ def read_LAMMPS_traj_in_parallel(file_address,
 
 def call_read_dcd_header(dcdfile):
 
+    if (not IO.check_file.status_is_ok(dcdfile)):
+
+        sys.exit("Errors in reading file: %s; The file " 
+                 "does not exist or is empty " % dcdfile)
+
     # declare c types varibles:
 
     dcdfile, strlength = string_to_ctypes_string(dcdfile)
@@ -378,6 +478,11 @@ def call_read_dcd_xyz_box_in_chunk(dcdfile,
 
 def get_lines_columns(txtfile):
 
+    if (not IO.check_file.status_is_ok(txtfile)):
+
+        sys.exit("Errors in reading file: %s; The file " 
+                 "does not exist or is empty " % txtfile)
+
     txtfile, strlength = string_to_ctypes_string(txtfile)
 
     num_lines = c_int()
@@ -391,7 +496,7 @@ def get_lines_columns(txtfile):
 
     return num_lines.value, num_columns.value
 
-
+# used together with "get_lines_columns" to get num_lines, num_cols
 def loadtxt(txtfile, num_lines, num_cols, skiprows, return_numpy):
 
     txtfile, strlength = string_to_ctypes_string(txtfile)
@@ -430,6 +535,12 @@ def np_loadtxt(txtfile, skiprows=0):
 
     num_lines, num_cols = get_lines_columns(txtfile)
 
+    if (skiprows >= num_lines): 
+
+        sys.exit("Errors in reading the file: '%s' !. The rows skipped is %d, "
+                 "which is more than or equal to the %d rows available in "
+                 "this file " % (txtfile, skiprows, num_lines)) 
+
     return loadtxt(txtfile, num_lines, num_cols, skiprows, return_numpy=True)
 
 # -------------------------------------------------------------------------
@@ -438,6 +549,11 @@ def np_loadtxt(txtfile, skiprows=0):
 
 
 def call_read_xyz_header(xyzfile):
+
+    if (not IO.check_file.status_is_ok(xyzfile)):
+
+        sys.exit("Errors in reading file: %s; The file " 
+                 "does not exist or is empty " % xyzfile)
 
     xyzfile, strlength = string_to_ctypes_string(xyzfile)
 

@@ -23,6 +23,7 @@ system_file= ../general/src/system_mod.f90
 
 all: lib/libdcd_reader.so lib/libtxt_reader.so lib/libxyz_reader.so lib/libforIO.a 
 
+# compile all source codes into dynamic library 
 $(LIB_DIR)libdcd_reader.so: src/dcd_reader_mod.f90
 
 	$(FC) $(FFLAGS_D) $(system_file) src/dcd_reader_mod.f90  -o $(LIB_DIR)libdcd_reader.so -module include/ 
@@ -34,6 +35,8 @@ $(LIB_DIR)libtxt_reader.so: src/txt_reader_mod.f90
 $(LIB_DIR)libxyz_reader.so: src/xyz_reader_mod.f90
 
 	$(FC) $(FFLAGS_D) $(system_file) src/xyz_reader_mod.f90  -o $(LIB_DIR)libxyz_reader.so -module include/
+
+# compile all source codes into static library 
 
 xyz_reader_mod.o: src/xyz_reader_mod.f90
 

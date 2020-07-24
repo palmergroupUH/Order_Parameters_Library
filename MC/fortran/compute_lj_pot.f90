@@ -10,7 +10,7 @@ module lj_potential
 	private 
 
 	! Export these subroutines/functions as public ( other subroutines/functions are still private) : 	
-	public :: compute_LJ_potential_due_to_i
+	public :: compute_isite_LJ_cut
 
 	! Global varialbes: 
 	
@@ -20,14 +20,14 @@ contains
 !                                               Interfacing with C                                                 
 !----------------------------------------------------------------------------------------------------------------- 
 	
-    subroutine compute_LJ_potential_due_to_i(&
+    subroutine compute_isite_LJ_cut(&
                             & total_atoms,& 
                             & xyz,& 
                             & box,& 
                             & icoord,&
                             & cutoff,& 
                             & potential_energy) &
-                            & bind(c,name="compute_potential_due_to_i")
+                            & bind(c,name="compute_isite_LJ_cut")
         implicit none 
 
         !Passed: 
@@ -59,9 +59,11 @@ contains
 
             ! sum_diff_sqr is 0 for a self term, the potential energy is 0 (no
             ! impact on the total potential)  
-            if (sum_diff_sqr < cutoff_sqr) then            
+            if (sum_diff_sqr < cutoff_sqr) then
+    
+                inv_sqr = 1/sum_diff_sqr
         
-                six_terms = sum_diff_sqr*sum_diff_sqr*sum_diff_sqr  
+                six_terms = inv_sqr*sum_diff_sqr*sum_diff_sqr  
 
                 twelves_terms = six_terms*six_terms 
 

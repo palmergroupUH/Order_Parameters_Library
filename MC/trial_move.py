@@ -6,28 +6,23 @@ import math
 
 # fortran API: 
 
-from potential import potential_lj 
 
 # Third-party libraries: 
 
-def randomly_translate_a_particle(xyz,total_atoms,max_disp): 
-
-    # pick a random particle 
-
-    selected_particle = int(np.random.uniform()*total_atoms) 
-
-    # find its current coordinate 
-
-    old_coord  = xyz[selected_particle,:] 
+def translate(particle_coord, max_disp): 
 
     # give the coordinate a random displacement  
     # factor "2" is make the translate to be within (-1,1) 
     # trial translate vector is 3 dimensions 
     perturb_rand_vec_3d = 2*(np.random.rand(3)-0.5)*max_disp
 
-    return selected_particle, old_coord, perturb_rand_vec_3d + old_coord  
+    # apply periodical bounardy condition and minimum image convention  
 
-def change_of_potential(xyz,box,cutoff,old_coord,new_coord): 
+    new_coord = perturb_rand_vec_3d - box*(perturb_rand_vec_3d/box) 
+
+    return  old_coord, new_coord 
+
+def delta_potential(xyz,box,cutoff,old_coord,new_coord): 
 
     # compute energy at old configuration  
 
@@ -39,7 +34,7 @@ def change_of_potential(xyz,box,cutoff,old_coord,new_coord):
 
     return pe_new - pe_old 
 
-def perform_trial_translate(chance):  
+def translate_chance(chance):  
 
     if (np.random.uniform() < chance):  
 

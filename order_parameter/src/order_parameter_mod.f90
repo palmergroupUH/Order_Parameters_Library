@@ -1,15 +1,27 @@
 module order_parameter
-    use system, only: c_int, c_double, dp, sp 
+    use sorting, only: selection_sort 
+    use system, only: c_int, c_double, dp, sp, error_unit 
+    use constants, only: pi
     use spherical_harmonics, only: compute_spherical_harmonics, &
-                                 & optimized_Q12   
+                                 & compute_spherical_harmonics_const,&
+                                 & compute_associated_legendre_const,& 
+                                 & optimized_Q12
     implicit none
     private
-    public :: compute_sum_Ylm,& 
+    public :: initialize_Ylm, & 
+            & compute_sum_Ylm,& 
             & build_homo_neighbor_list, &
+            & apply_nearest_neighbor_crit, & 
+            & check_nb_list, &             
             & neighbor_averaged_qlm, &
-            & compute_dot_product 
+            & compute_dot_product_nnb, & 
+            & convert_c_string_f_string 
               
 contains
+
+! -------------------------------------------------------------------------------------------------
+!                                  Neighbor List
+! -------------------------------------------------------------------------------------------------
 
     subroutine build_homo_neighbor_list(total_atoms, maxnb, cutoff_sqr_nb, xyz, box, num_NB_list, NB_list, Rij)
         implicit none 
@@ -78,6 +90,154 @@ contains
         end do
  
         end subroutine
+
+    subroutine check_nb_list(num_NB_list,maxnb,nnb)
+        implicit none
+        integer,intent(in),dimension(:) :: num_NB_list
+        integer,intent(in) :: maxnb, nnb
+
+        ! if Nothing wrong, continues
+        if (all(num_NB_list <= maxnb) .AND. & 
+          & all(num_NB_list >= nnb)   .AND. & 
+          & all(num_NB_list > 0)) then
+
+            continue
+
+        else if ( any(num_NB_list > maxnb) ) then
+
+            write(error_unit,*) "Error! Maximum numbers of neighbors is larger than maxnb"
+            write(error_unit,*) "Check the followings: "
+            write(error_unit,*) "1. Cutoff is too much ? "
+            write(error_unit,*) "2. Input maxnb is too small ? "
+            write(error_unit,*) "3. The atoms are read from trajectories & 
+                                & correctly (different kinds of species & 
+                                & used properly) ? "
+
+            STOP "Decrease the cutoff or increase maxnb"
+
+        else if (any(num_NB_list < nnb)) THEN
+
+            write(error_unit,*) "Minimum number of atoms is:", & 
+                                & MinVAL(num_NB_list), & 
+                                & "The required nearest neighbors is:",nnb
+
+            STOP "Some atoms may not have enough neighbors to meet the nearest neighbors requirement"
+
+        end if
+
+        if (any(num_NB_list ==0)) then
+
+            write(error_unit,*) "Some atoms does not have any neighbors at this cutoff "
+            stop
+
+        end if
+
+        IF ( any(maxnb - num_NB_list  < 5) ) THEN
+
+            write(error_unit,*) "WARNinG: Maxnb is only less than 5 & 
+                                & bigger than maximum numberof neighbors"
+
+        end IF
+
+        end subroutine
+
+    subroutine use_nearest_neighbors(nnb, total_atoms, num_NB_list, NB_list, Rij)
+        implicit none
+
+        ! Passed
+        integer, intent(in) :: nnb,total_atoms
+
+        ! Local
+        integer :: iatom,jatom,num_NB
+        real(dp),dimension(1:3)   :: xyz
+        integer,dimension(:),allocatable :: tracking_index
+
+        ! Return
+        integer, intent(inout), dimension(:) :: num_NB_list
+        integer, intent(inout),dimension(:,:) :: NB_list 
+        real(dp), intent(inout),dimension(:,:,:) :: Rij 
+
+        DO iatom = 1,total_atoms
+
+            ! search the nearest neighbors and return index
+
+            num_NB = num_NB_list(iatom)
+            
+            call selection_sort(num_NB,Rij(4,1:num_NB,iatom),tracking_index, nnb)
+            
+            NB_list(1:nnb,iatom) = NB_list(tracking_index(1:nnb),iatom)
+
+            Rij(1:3,1:nnb,iatom) = Rij(1:3,tracking_index(1:nnb),iatom)
+    
+        end do
+
+        num_NB_list = nnb
+
+        end subroutine
+
+    subroutine check_enough_neighbors(nnb, num_NB_list)
+        implicit none 
+        integer, intent(in) :: nnb 
+        integer, intent(in), dimension(:) :: num_NB_list
+        integer :: iatom
+
+        if (any(num_NB_list - nnb < 0)) then 
+
+            write(error_unit,*) "Some atoms may not have enough neighbors & 
+                                & to meet the nearest neighbors requirement"
+
+            stop    
+
+        end IF 
+
+        end subroutine 
+
+
+    subroutine apply_nearest_neighbor_crit(nnb, total_atoms, num_NB_list, NB_list, Rij)
+        implicit none 
+        integer,intent(in) :: nnb,total_atoms  
+        integer, intent(inout), dimension(:) :: num_NB_list
+        integer, intent(inout),dimension(:,:) :: NB_list 
+        real(dp), intent(inout),dimension(:,:,:) :: Rij 
+
+        select case(nnb)   
+
+            case(0) 
+
+                ! No need to nearest neighbors scheme and return 
+                continue
+
+            case(1:) 
+
+                call check_enough_neighbors(nnb, num_NB_list) 
+                
+                ! apply nearest neighbors scheme    
+                call use_nearest_neighbors(nnb,total_atoms, num_NB_list, NB_list, Rij) 
+
+            case(:-1) 
+
+                stop "number of nearest neighbors can not be negative "
+    
+        end select  
+
+        end subroutine 
+
+! -------------------------------------------------------------------------------------------------
+!                                  Spherical Harmonics
+! -------------------------------------------------------------------------------------------------
+
+
+    subroutine initialize_Ylm(l, sph_const, Plm_const)
+        implicit none 
+        integer, intent(in) :: l
+        real(dp), intent(out), dimension(-l:l) :: sph_const
+        real(dp), intent(out), dimension(0:l,4) :: Plm_const
+
+        call compute_spherical_harmonics_const(l, sph_const)
+
+        call compute_associated_legendre_const(l, Plm_const) 
+
+        end subroutine 
 
     subroutine compute_sum_Ylm(sph_const,&
                               & Plm_const,&
@@ -149,26 +309,28 @@ contains
 
             end do
 
-            Ylm_sum(:,iatom) = Ylm_sum_nb 
+            Ylm_sum(:,iatom) = Ylm_sum_nb/num_NB_list(iatom)  
 
         end do 
 
         end subroutine
 
-    subroutine neighbor_averaged_qlm(total_atoms,l,num_NB_list,NB_list,Ylm,qlm_nb_ave)
+    subroutine neighbor_averaged_qlm(total_atoms,l,num_NB_list,NB_list,Ylm,Qlm)
         implicit none
 
         ! Passed:
+
         integer,intent(in) :: total_atoms,l
         integer,intent(in),dimension(:) :: num_NB_list
         integer,intent(in),dimension(:,:) :: NB_list
         complex(dp), intent(in), dimension(:,:) :: Ylm 
+
         ! Local:
         complex(dp),dimension(-l:l) :: sum_neighbor_qlm
         integer :: i,j,j_nb,num_NB
 
         ! Return
-        complex(dp),intent(out),dimension(:,:) :: qlm_nb_ave
+        complex(dp),intent(out),dimension(:,:) :: Qlm
 
         do i = 1, total_atoms
 
@@ -176,37 +338,36 @@ contains
 
             sum_neighbor_qlm = Ylm(:,i)
 
-            do j = 1, num_NB 
+            do j = 1, num_NB
 
                 ! NB_list(j,i) return the j neighbor (index) of i particle
-                sum_neighbor_qlm = sum_neighbor_qlm + Ylm(:,NB_list(j,i)) 
+                sum_neighbor_qlm = sum_neighbor_qlm + Ylm(:,NB_list(j,i))
 
-            end do 
+            end do
 
-            qlm_nb_ave(:,i) = sum_neighbor_qlm/(num_NB)
+            Qlm(:,i) = sum_neighbor_qlm/(num_NB)
 
         end do
-        
+
         end subroutine 
 
-    subroutine compute_dot_product(total_atoms, maxnb, l, num_NB_list, NB_list, qlm, cij)
+    subroutine compute_dot_product_nnb(total_atoms, nnb, l, NB_list, qlm, cij)
         implicit none
 
         ! Passed
         integer, intent(in) :: total_atoms
         integer, intent(in) :: l
-        integer, intent(in) :: maxnb 
+        integer, intent(in) :: nnb 
         complex(dp),intent(in),dimension(:,:) :: qlm
-        integer,intent(in),dimension(:) :: num_NB_list
         integer,intent(in),dimension(:,:) :: NB_list
 
         ! Local
         real(dp) :: qlm_norm_i, qlm_norm_j
         complex(dp),dimension(-l:l) :: Ylm_i, Ylm_j
-        integer :: i,j,num_NB,nb,num_comp
+        integer :: i,j,num_comp
 
         ! Return
-        real(dp),intent(out),dimension(1:maxnb,1:total_atoms) :: cij
+        real(dp),intent(out),dimension(1:nnb,1:total_atoms) :: cij
 
         cij = 0.0d0
 
@@ -214,25 +375,38 @@ contains
 
             Ylm_i = qlm(:,i)
 
-            num_NB = num_NB_list(i)
+            qlm_norm_i = zsqrt(sum(Ylm_i*dconjg(Ylm_i)))
+            
+            do j = 1,nnb
+    
+                ! Find neighbor j, and extract qlm 
+                Ylm_j = qlm(:,NB_list(j,i))
 
-            qlm_norm_i = ZSQRT(SUM(Ylm_i*DCONJG(Ylm_i)))
-
-            do j = 1,num_NB
-
-                nb = NB_list(j,i)
-
-                Ylm_j = qlm(:,nb)
-
-                qlm_norm_j =ZSQRT(SUM(Ylm_j*DCONJG(Ylm_j)))
-
-                cij(j,i) = SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j)/qlm_norm_j)
-
+                qlm_norm_j = zsqrt(sum(Ylm_j*dconjg(Ylm_j)))
+                
+                cij(j,i) = dot_product((Ylm_i)/qlm_norm_i, (Ylm_j)/qlm_norm_j)  !SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j/qlm_norm_j)) 
+                
             end do
 
         end do
 
         end subroutine 
 
+    subroutine convert_c_string_f_string(str,strlen,f_string)
+        implicit none
+        integer ,intent(in):: strlen
+        character(len=1),intent(in),dimension(1:strlen) :: str
+        character(len=:),allocatable,intent(out) :: f_string
+        integer :: i
+
+        f_string = ""
+
+        do i = 1,strlen
+
+            f_string = f_string//str(i)
+
+        end do
+
+        end subroutine
 
 end module  
