@@ -1,4 +1,11 @@
-# A Python importable Fortran-based order parameter analysis library 
+# A order parameter analysis library for Python  
+
+
+## Features:
+
+* C-callable Fortran routines
+
+* Modular design
 
 
 
