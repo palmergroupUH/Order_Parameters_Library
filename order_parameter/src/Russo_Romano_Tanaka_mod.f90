@@ -4,9 +4,9 @@ module Russo_Romano_Tanaka
                              & check_nb_list, & 
                              & apply_nearest_neighbor_crit, &  
                              & initialize_Ylm, & 
-                             & compute_sum_Ylm, & 
+                             & compute_ave_Ylm, & 
                              & neighbor_averaged_qlm, & 
-                             & compute_dot_product_nnb 
+                             & nnb_dot_product_and_bonds 
  
     implicit none 
     ! Default private for all variables and routines in this module
@@ -36,9 +36,11 @@ contains
                                     & nnb, &
                                     & l, &
                                     & cutoff_sqr,&
+                                    & crys_cut, &
                                     & box, &
                                     & xyz, &
-                                    & cij) bind(c, name="call_RussoRomanoTanaka")
+                                    & cij, &
+                                    & count_bonds) bind(c, name="call_RussoRomanoTanaka")
         implicit none 
     
         ! Passed:
@@ -49,6 +51,7 @@ contains
         integer(c_int), intent(in) :: nnb
         integer(c_int), intent(in) :: l
         real(c_double), intent(in) :: cutoff_sqr
+        real(c_double), intent(in) :: crys_cut
         real(c_double), intent(in), dimension(1:3) :: box
         real(c_double), intent(in), dimension(1:3, total_atoms) :: xyz
 
@@ -60,7 +63,8 @@ contains
 
         ! Return:
         real(c_double), intent(out), dimension(1:nnb, 1:total_atoms) :: cij
-         
+        real(c_double), intent(out), dimension(1:total_atoms) :: count_bonds 
+
         ! get the neighbor list
         call build_homo_neighbor_list(total_atoms, maxnb, cutoff_sqr, xyz, box, num_NB_list, NB_list, Rij) 
 
@@ -70,14 +74,14 @@ contains
         ! apply the nearest neighbor:
         call apply_nearest_neighbor_crit(nnb, total_atoms, num_NB_list, NB_list, Rij)
          
-        ! compute_sum_Ylm  
-        call compute_sum_Ylm(sph_const, Plm_const, total_atoms, l, num_NB_list, Rij, Ylm)
+        ! compute_sum_Ylm
+        call compute_ave_Ylm(sph_const, Plm_const, total_atoms, l, num_NB_list, Rij, Ylm)
          
         ! compute the neighbor_averaged
         call neighbor_averaged_qlm(total_atoms, l, num_NB_list, NB_list, Ylm, qlm_nb_ave) 
     
         ! compute the dot_product:
-        call compute_dot_product_nnb(total_atoms, nnb, l, NB_list, qlm_nb_ave, cij) 
+        call nnb_dot_product_and_bonds(total_atoms, nnb, l, NB_list, crys_cut, qlm_nb_ave, cij, count_bonds) 
         
         end subroutine
 

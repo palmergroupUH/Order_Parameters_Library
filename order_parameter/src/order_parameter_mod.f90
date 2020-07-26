@@ -9,12 +9,15 @@ module order_parameter
     implicit none
     private
     public :: initialize_Ylm, & 
-            & compute_sum_Ylm,& 
+            & compute_ave_Ylm,& 
+            & local_bond_order, & 
+            & global_bond_order, & 
             & build_homo_neighbor_list, &
             & apply_nearest_neighbor_crit, & 
             & check_nb_list, &             
             & neighbor_averaged_qlm, &
-            & compute_dot_product_nnb, & 
+            & nnb_dot_product, & 
+            & nnb_dot_product_and_bonds, &  
             & convert_c_string_f_string 
               
 contains
@@ -239,13 +242,13 @@ contains
 
         end subroutine 
 
-    subroutine compute_sum_Ylm(sph_const,&
+    subroutine compute_ave_Ylm(sph_const,&
                               & Plm_const,&
                               & total_atoms,& 
                               & l, &
                               & num_NB_list, &
                               & Rij,& 
-                              & Ylm_sum)
+                              & Ylm_ave)
         implicit none 
         ! Passed:
         integer, intent(in) :: l, total_atoms 
@@ -255,19 +258,21 @@ contains
         real(dp),intent(in),dimension(:,:,:) :: Rij
         
         ! Local:
-        integer :: iatom, jnb
+        integer :: iatom, jnb, num_NB
         complex(dp), dimension(-l:l) :: Ylm, Ylm_sum_nb
         real(dp) :: rcx,rcy,rcz,rl
         real(dp) :: sin_theta, cos_theta, sin_phi, cos_phi
       
         ! Return:
-        complex(dp), intent(out), dimension(-l:l,total_atoms) :: Ylm_sum
+        complex(dp), intent(out), dimension(-l:l,total_atoms) :: Ylm_ave
 
         do iatom = 1, total_atoms
     
             Ylm_sum_nb = 0.0d0
 
-            do jnb = 1, num_NB_list(iatom)
+            num_NB = num_NB_list(iatom)
+
+            do jnb = 1, num_NB  
 
                 rcx = Rij(1,jnb,iatom) 
     
@@ -300,7 +305,7 @@ contains
                     call compute_spherical_harmonics(sph_const, Plm_const, l, cos_theta, cos_phi, sin_phi, Ylm)
     
                 else if (l==12) then
-
+                    
                     call optimized_Q12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
 
                 end if
@@ -309,11 +314,59 @@ contains
 
             end do
 
-            Ylm_sum(:,iatom) = Ylm_sum_nb/num_NB_list(iatom)  
+            Ylm_ave(:,iatom) = Ylm_sum_nb/num_NB
 
         end do 
 
         end subroutine
+
+    subroutine local_bond_order(total_atoms, l, Ylm_ave, local_ql) 
+        implicit none 
+
+        ! Passed 
+        integer,intent(in) :: total_atoms,l  
+        complex(dp), intent(in), dimension(-l:l,total_atoms) :: Ylm_ave         
+
+        ! Local:
+        integer :: i, norm_const 
+        complex(dp), dimension(-l:l) :: local_Ylm  
+
+        ! Return:
+        real(dp), intent(out), dimension(1:total_atoms) :: local_ql 
+                
+        norm_const = 4*pi/(2*l+1) 
+
+        do i = 1, total_atoms
+
+            local_Ylm = Ylm_ave(:,i) 
+
+            local_ql(i) = zsqrt(norm_const*sum(local_Ylm*dconjg(local_Ylm)))
+           
+        end do 
+
+        end subroutine 
+
+    subroutine global_bond_order(total_atoms, l, Ylm_ave)
+        implicit none 
+
+        ! Passed 
+        integer,intent(in) :: total_atoms,l  
+        complex(dp), intent(in), dimension(-l:l,total_atoms) :: Ylm_ave         
+
+        ! Local:
+        integer :: i, norm_const 
+        complex(dp), dimension(-l:l) :: sum_Ylm
+
+        ! Return:
+        real(dp) :: global_op
+    
+        norm_const = 4*pi/(2*l+1)
+
+        sum_Ylm = sum(Ylm_ave, dim=1)
+   
+        global_op = zsqrt(norm_const*sum(sum_Ylm*dconjg(sum_Ylm)))
+
+        end subroutine 
 
     subroutine neighbor_averaged_qlm(total_atoms,l,num_NB_list,NB_list,Ylm,Qlm)
         implicit none
@@ -330,7 +383,7 @@ contains
         integer :: i,j,j_nb,num_NB
 
         ! Return
-        complex(dp),intent(out),dimension(:,:) :: Qlm
+        complex(dp),intent(out),dimension(-l:l,1:total_atoms) :: Qlm
 
         do i = 1, total_atoms
 
@@ -345,13 +398,13 @@ contains
 
             end do
 
-            Qlm(:,i) = sum_neighbor_qlm/(num_NB)
+            Qlm(:,i) = sum_neighbor_qlm/num_NB
 
         end do
 
         end subroutine 
 
-    subroutine compute_dot_product_nnb(total_atoms, nnb, l, NB_list, qlm, cij)
+    subroutine nnb_dot_product(total_atoms, nnb, l, NB_list, qlm, cij)
         implicit none
 
         ! Passed
@@ -364,14 +417,14 @@ contains
         ! Local
         real(dp) :: qlm_norm_i, qlm_norm_j
         complex(dp),dimension(-l:l) :: Ylm_i, Ylm_j
-        integer :: i,j,num_comp
+        integer :: i,j
 
         ! Return
         real(dp),intent(out),dimension(1:nnb,1:total_atoms) :: cij
 
         cij = 0.0d0
 
-        do i = 1,total_atoms
+        do i = 1, total_atoms
 
             Ylm_i = qlm(:,i)
 
@@ -390,6 +443,63 @@ contains
 
         end do
 
+        end subroutine 
+
+    subroutine nnb_dot_product_and_bonds(total_atoms, nnb, l, NB_list, conntect_cut, qlm, cij, count_bonds)
+        implicit none 
+
+        ! Passed
+        integer, intent(in) :: total_atoms
+        integer, intent(in) :: l
+        integer, intent(in) :: nnb 
+        real(dp), intent(in) :: conntect_cut
+        complex(dp),intent(in),dimension(:,:) :: qlm
+        integer,intent(in),dimension(:,:) :: NB_list
+
+        ! Local
+        real(dp) :: qlm_norm_i, qlm_norm_j, scalar_prod
+        complex(dp),dimension(-l:l) :: Ylm_i, Ylm_j
+        integer :: i,j, bonds_per_mol 
+
+        ! Return
+        real(dp),intent(out),dimension(1:nnb,1:total_atoms) :: cij
+        real(dp), intent(out), dimension(1:total_atoms) :: count_bonds 
+
+        cij = 0.0d0
+
+        count_bonds = 0.0d0 
+
+        do i = 1, total_atoms
+
+            Ylm_i = qlm(:,i)
+
+            qlm_norm_i = zsqrt(sum(Ylm_i*dconjg(Ylm_i)))
+
+            bonds_per_mol = 0
+            
+            do j = 1,nnb
+    
+                ! Find neighbor j, and extract qlm 
+                Ylm_j = qlm(:,NB_list(j,i))
+
+                qlm_norm_j = zsqrt(sum(Ylm_j*dconjg(Ylm_j)))
+                
+                scalar_prod = dot_product((Ylm_i)/qlm_norm_i, (Ylm_j)/qlm_norm_j)  !SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j/qlm_norm_j)) 
+
+                cij(j,i) = scalar_prod 
+
+                if (scalar_prod > conntect_cut) then
+
+                    bonds_per_mol = bonds_per_mol + 1 
+    
+                end if 
+
+            end do
+            
+            count_bonds(i) = bonds_per_mol 
+
+        end do
+                
         end subroutine 
 
     subroutine convert_c_string_f_string(str,strlen,f_string)

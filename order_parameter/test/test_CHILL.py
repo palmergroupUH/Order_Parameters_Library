@@ -13,7 +13,7 @@ from IO.type_conversion import string_to_ctypes_string,\
 from order_parameter.spherical_harmonics_based import intialize_CHILL
 from order_parameter.spherical_harmonics_based import call_CHILL
 
-# Third-party:  
+# Third-party:
 import numpy as np
 import matplotlib.pyplot as plt  
 
@@ -45,7 +45,7 @@ def test_CHILL():
 
     CHILL_keyword = "CHILL"
 
-    for i in range(3000):
+    for i in range(100):
 
         xyz, box = IO.reader.call_read_dcd_xyz_box(dcdfile, i+1, total_atoms, return_numpy=False)
 

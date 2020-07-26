@@ -4,9 +4,9 @@ module CHILL
                              & check_nb_list, & 
                              & apply_nearest_neighbor_crit, &  
                              & initialize_Ylm, & 
-                             & compute_sum_Ylm, & 
+                             & compute_ave_Ylm, & 
                              & neighbor_averaged_qlm, & 
-                             & compute_dot_product_nnb, & 
+                             & nnb_dot_product, & 
                              & convert_c_string_f_string
     implicit none 
     private 
@@ -79,10 +79,10 @@ contains
         call apply_nearest_neighbor_crit(nnb, total_atoms, num_NB_list, NB_list, Rij)
        
         ! compute_sum_Ylm  
-        call compute_sum_Ylm(sph_const, Plm_const, total_atoms, l, num_NB_list, Rij, Ylm)
+        call compute_ave_Ylm(sph_const, Plm_const, total_atoms, l, num_NB_list, Rij, Ylm)
         
         ! compute the dot_product:
-        call compute_dot_product_nnb(total_atoms, nnb, l, NB_list, Ylm, cij)
+        call nnb_dot_product(total_atoms, nnb, l, NB_list, Ylm, cij)
         
         ! apply the CHILL:
         call apply_CHILL_or_CHILL_plus(CHILL_key, total_atoms, nnb, cij, NB_list, chill_id_list)

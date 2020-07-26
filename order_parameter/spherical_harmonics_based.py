@@ -41,11 +41,15 @@ def intialize_RussoRomanoTanaka(l):
 
     return sph_const, Plm_const 
 
-def call_RussoRomanoTanaka(sph_const, Plm_const, total_atoms, l, xyz, box, maxnb, nnb, cutoff_sqr):
+def call_RussoRomanoTanaka(sph_const, Plm_const, total_atoms, l, xyz, box, maxnb, nnb, cutoff_sqr, crys_cut):
 
     cij = np.ctypeslib.as_ctypes(np.zeros(nnb*total_atoms, dtype=np.float64))    
+    
+    count_bonds = np.ctypeslib.as_ctypes(np.zeros(total_atoms, dtype=np.float64))
 
     cutoff_sqr = c_double(cutoff_sqr)
+
+    crys_cut = c_double(crys_cut)
 
     l = c_int(l)
 
@@ -62,13 +66,17 @@ def call_RussoRomanoTanaka(sph_const, Plm_const, total_atoms, l, xyz, box, maxnb
                                         byref(nnb),  
                                         byref(l),
                                         byref(cutoff_sqr),
+                                        byref(crys_cut),
                                         box,
                                         xyz,
-                                        cij)
+                                        cij,    
+                                        count_bonds)
 
     cij = np.ctypeslib.as_array(cij)
 
-    return cij
+    count_bonds = np.ctypeslib.as_array(count_bonds) 
+    
+    return cij, count_bonds 
 
 # ----------------------------------------------------------------------------
 #                                 CHILL 
@@ -112,7 +120,7 @@ def call_CHILL(keyword, sph_const, Plm_const, total_atoms, l, xyz, box, maxnb, n
                          byref(strlength),
                          byref(total_atoms),
                          byref(maxnb),
-                         byref(nnb),  
+                         byref(nnb),
                          byref(l),
                          byref(cutoff_sqr),
                          box,
