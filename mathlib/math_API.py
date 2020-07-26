@@ -117,3 +117,38 @@ def compute_optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
 
         return Ylm_complex  
 
+def compute_optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
+
+    # 2 is for real and imaginary part a complex vector
+   
+    cos_theta = c_double(cos_theta)
+
+    sin_theta = c_double(sin_theta)
+
+    cos_phi = c_double(cos_phi) 
+
+    sin_phi = c_double(sin_phi) 
+
+    Ylm_complex = np.ctypeslib.as_ctypes(np.zeros(9*2, dtype=np.float64))
+
+    sph_lib.call_optimized_Y4(byref(sin_theta),
+                              byref(cos_theta),
+                              byref(cos_phi), 
+                              byref(sin_phi), 
+                              Ylm_complex)
+
+    Ylm_complex = np.ctypeslib.as_array(Ylm_complex).reshape(2,9).T
+    
+    # if m is provided, return m value
+    if (m is not None):
+
+        index = m + l.value
+    
+        # unpack 2d arrays into real and img part
+        return complex(*Ylm_complex[index])
+
+    # if m is not provided, return Ylm 
+    else:
+
+        return Ylm_complex  
+

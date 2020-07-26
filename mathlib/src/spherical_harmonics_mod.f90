@@ -36,7 +36,8 @@ module spherical_harmonics
 			& copmute_associated_legendre_poly, & 
 			& compute_spherical_harmonics_const, & 			
 			& compute_spherical_harmonics,& 
-            & optimized_Q12 
+            & optimized_Y12, &
+            & optimized_Y4 
 
 	! Global variables
 
@@ -308,7 +309,7 @@ contains
         
         end subroutine 
 
-    pure subroutine optimized_Q12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+    pure subroutine optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
             implicit none 
             ! Passed
             real(dp), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
@@ -408,7 +409,7 @@ contains
             cosp(12) = cosp(11)*cosp(1) - sinp(11)*sinp(1) 
 
 		    ! Update the harmonic sum
-		
+	        ! From Mathmatica function: "SphericalHarmonicsY[12,m,theta, phi]"	
 		    Ylm(-12) = 0.566266663742191d0*cmplx(cosp(12),-sinp(12))*sint(12)
 		    Ylm(-11) = 2.77412876903310d0*CMPLX(cosp(11),-sinp(11))*sint(11)*cost(1)
 		    Ylm(-10) = 0.409022972331817d0*CMPLX(cosp(10),-sinp(10))*sint(10)*(-1+23*cost(2))
@@ -437,8 +438,68 @@ contains
 
         end subroutine 
 
-   ! This subroutine is exposed as c callable 
-   pure subroutine call_optimized_Q12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm_complex) bind(c, name="call_optimized_Y12")
+
+    pure subroutine optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+            implicit none  
+            ! Passed
+            real(dp), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
+
+            ! Local
+            real(dp),dimension(1:4) :: sint, cost, sinp, cosp 
+
+            ! Return
+            complex(dp), intent(out), dimension(-4:4) :: Ylm
+       
+            ! assign the inital parameters 
+            sint(1) = sin_theta
+
+            cost(1) = cos_theta
+
+            sinp(1) = sin_phi
+
+            cosp(1) = cos_phi
+
+            ! calculate powers of sin(theta)
+            sint(2) = sint(1)*sint(1)
+            sint(3) = sint(2)*sint(1)
+            sint(4) = sint(3)*sint(1) 
+
+            ! calculate powers of cos(theta)
+            cost(2) = cost(1)*cost(1)
+            cost(3) = cost(2)*cost(1)
+            cost(4) = cost(3)*cost(1)
+
+
+            ! calculate sin/cos (2phi)
+            sinp(2) = 2.0d0*sinp(1)*cosp(1)
+            cosp(2) = 2.0d0*cosp(1)**2 - 1.0d0
+
+            ! calculate sin/cos (3phi)
+            sinp(3) = sinp(2)*cosp(1) + cosp(2)*sinp(1)
+            cosp(3) = cosp(2)*cosp(1) - sinp(2)*sinp(1)
+
+
+            ! calculate sin/cos (4phi) 
+
+            sinp(4) = sinp(3)*cosp(1) + cosp(3)*sinp(1) 
+            cosp(4) = cosp(3)*cosp(1) - sinp(3)*sinp(1) 
+
+		    ! Update the harmonic sum
+	        ! From Mathmatica function: "SphericalHarmonicsY[4,m,theta, phi]"	
+		    Ylm(-4) = 0.442532692444983d0 *CMPLX(cosp(4),-sinp(4))*sint(4) 
+		    Ylm(-3) = 1.25167147089835d0 *CMPLX(cosp(3),-sinp(3))*cost(1)*(sint(3)) 
+		    Ylm(-2) = 0.334523271778645d0 *CMPLX(cosp(2),-sinp(2))*(-1 + 7.0d0*cost(2))*sint(2) 
+		    Ylm(-1) = 0.473087347878780d0 * CMPLX(cosp(1),-sinp(1))*cost(1)*(-3.0d0 + 7.0d0*cost(2))*sint(1) 
+		    Ylm(0) =  0.105785546915204d0*(3-30.0d0*cost(2) + 35.0d0*cost(4))  
+		    Ylm(1) = -0.473087347878780d0*CMPLX(cosp(1),sinp(1))*cost(1)*(-3+7.0d0*cost(2))*sint(1)
+		    Ylm(2) = 0.334523271778645d0 * CMPLX(cosp(2),sinp(2)) * (-1 + 7*cost(2))*sint(2)
+		    Ylm(3) = -1.25167147089835d0* CMPLX(cosp(3),sinp(3)) * (cost(1) *sint(3)) 
+		    Ylm(4) = 0.442532692444983 * CMPLX(cosp(4),sinp(4)) * sint(4)  
+        
+            end subroutine
+
+    ! This subroutine is exposed as c callable 
+    pure subroutine call_optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm_complex) bind(c, name="call_optimized_Y12")
             implicit none 
             ! Passed
             real(c_double), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
@@ -450,7 +511,7 @@ contains
             ! Return
             real(c_double), intent(out), dimension(-12:12,2) :: Ylm_complex
 
-            call optimized_Q12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+            call optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
                    
             Ylm_complex(:,1) = real(Ylm, dp) 
 
@@ -458,8 +519,24 @@ contains
 
             end subroutine 
 
-! -------------------------------------------------------------------------------------------------
-!                                           Wigner 3j
-! -------------------------------------------------------------------------------------------------
-	 
+    ! This subroutine is exposed as c callable 
+    pure subroutine call_optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, Ylm_complex) bind(c, name="call_optimized_Y4")
+            implicit none 
+            ! Passed
+            real(c_double), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
+
+            ! Local
+            real(dp),dimension(1:4) :: sint, cost, sinp, cosp 
+            complex(dp), dimension(-4:4) :: Ylm 
+
+            ! Return
+            real(c_double), intent(out), dimension(-4:4,2) :: Ylm_complex
+
+            call optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+                   
+            Ylm_complex(:,1) = real(Ylm, dp) 
+
+            Ylm_complex(:,2) = dimag(Ylm)
+
+            end subroutine 
 end module 

@@ -4,7 +4,8 @@ import numpy as np
 
 # Local library:
 from mathlib.math_API import (compute_spherical_harmonics, 
-                              compute_optimized_Y12)
+                              compute_optimized_Y12,
+                              compute_optimized_Y4)
 
 # Third-party library
 import pytest
@@ -68,6 +69,38 @@ def test_optimized_Y12():
 
     return None
 
-test_any_spherical_harmonics()
+def test_optimized_Y4():
+
+    theta = 0
+
+    phi = 1 
+
+    results = compute_optimized_Y4(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
+    
+    print (results) 
+
+    theta = 1 
+
+    phi = 0 
+
+    results = compute_optimized_Y4(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
+
+    print (results) 
+    
+    theta = 0.5 
+
+    phi = 0.5 
+
+    results = compute_optimized_Y4(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
+
+    print (results) 
+
+    return None 
+
+#test_any_spherical_harmonics()
+
 
 #test_optimized_Y12()
+
+
+test_optimized_Y4()
