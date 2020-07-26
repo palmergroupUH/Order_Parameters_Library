@@ -1,4 +1,4 @@
-# A usable and efficient order parameter library for condense matter analysis
+# An easy-to-use, efficient and customizable order parameter library for soft condense matter system analysis
 
 
 ## Features:

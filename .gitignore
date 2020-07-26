@@ -1,3 +1,5 @@
+# ignore the package egg
+FortranAPI.egg-info/
 # ignore all fortran/C/C++related compiled files
 *.mod
 *.so
