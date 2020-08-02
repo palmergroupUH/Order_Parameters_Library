@@ -8,99 +8,110 @@ from mathlib.math_API import (compute_spherical_harmonics,
                               compute_optimized_Y4)
 
 # Third-party library
-import pytest
+from pytest import approx
+from scipy.special import sph_harm
 
+def scipy_spherical_harmonics(l,phi, theta):
+    # Note: 
+    # theta  is  [0, Pi] 
+    # phi is [0, 2pi] 
+
+    sph_array = np.zeros(2*l+1, dtype=np.complex128)
+
+    real_img = np.zeros((2*l+1,2), dtype=np.float64)
+
+    for indx, m in enumerate(range(-l, l+1)): 
+    
+        sph_array[indx] = sph_harm(m,l,phi,theta)  
+
+    real_img[:,0] = sph_array.real 
+
+    real_img[:,1] = sph_array.imag 
+
+    return real_img 
 
 def test_any_spherical_harmonics():
-
     # test range for.
-    #l = [1,3,4,6,8,10,12]
-    l = [12] 
-
-    mathmatica_results  = [complex(0.089495, -0.13938),
-                           0.428789,
-                           complex(-0.089495, -0.13938)]
-    cos_theta = np.cos(0.5) 
-
-    sin_theta = np.sqrt((1-cos_theta**2)) 
-
-    phi = 1 
-
-    cos_phi = np.cos(phi) 
-
-    sin_phi = np.sin(phi)
-
-    counter = 0 
+    
+    l = [1,3,4,6,8,10,12]
 
     for order in l: 
         
-        m_list = [-order, 0, order]
+        # theta  is  [0, Pi] 
+        theta_ary = np.array([0,0.25,  0.5, 1, 2.5, 3.14], dtype=np.float64) 
 
-        for m in m_list:
+        # phi  is  [0, 2Pi]
+        phi_ary = np.array([0, 0.25, 0.5, 1, 2.5, 3.14, 5, 6.28], dtype=np.float64)
+
+        for theta in theta_ary: 
+
+            for phi in phi_ary:  
+
+                results = compute_spherical_harmonics(order, np.cos(theta), np.cos(phi), np.sin(phi)) 
+        
+                if (order == 12): 
             
-            results = compute_optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi) 
-            print (results) 
-            results = compute_spherical_harmonics(order, cos_theta, cos_phi, sin_phi, m) 
-            print (results)  
-            #val = results - mathmatica_results[counter]
-            
-            #print (val.real < 10**-9 and val.imag < 10**-9)  
+                    optimized_12_results = compute_optimized_Y12(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi)) 
+                    
+                    assert approx(results, 10**-24)  == optimized_12_results
 
-            #assert (val.real < 10**-6 and val.imag < 10**-6)
+                elif (order == 4):
 
-            counter += 1 
+                    optimized_4_results = compute_optimized_Y4(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))  
+                   
+                    assert approx(results, 10**-24)  == optimized_4_results 
+
+                else: 
+
+                    scipy_results = scipy_spherical_harmonics(order, phi, theta)     
+
+                    assert approx(results, 10**-7)  == scipy_results
 
     return None
 
 def test_optimized_Y12():
 
-    theta = 0
+    # theta  is  [0, Pi] 
+    theta_ary = np.array([0,0.25,  0.5, 1, 2.5, 3.14], dtype=np.float64) 
 
-    phi = 1 
+    # phi  is  [0, 2Pi]
+    phi_ary = np.array([0, 0.25, 0.5, 1, 2.5, 3.14, 5, 6.28], dtype=np.float64)
 
-    results = compute_optimized_Y12(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
+    for theta in theta_ary: 
 
-    #print (results) 
-    theta = 1 
+        for phi in phi_ary:  
 
-    results = compute_optimized_Y12(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
-    #print (results) 
-    phi = 0 
+            results = compute_optimized_Y12(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
 
+            scipy_results = scipy_spherical_harmonics(12, phi, theta)
+            
+            assert approx(results, 10**-7)  == scipy_results
+    
     return None
 
 def test_optimized_Y4():
 
-    theta = 0
+    # theta  is  [0, Pi] 
+    theta_ary = np.array([0, 0.25, 0.5, 1, 2.5, 3.14], dtype=np.float64) 
 
-    phi = 1 
+    # phi  is  [0, 2Pi] 
+    phi_ary = np.array([0, 0.25, 0.5, 1, 2.5, 3.14, 5, 6.28], dtype=np.float64)
 
-    results = compute_optimized_Y4(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
+    for theta in theta_ary: 
+
+        for phi in phi_ary:  
+
+            results = compute_optimized_Y4(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
+
+            scipy_results = scipy_spherical_harmonics(4, phi, theta)
+            
+            assert approx(results, 10**-7)  == scipy_results
     
-    print (results) 
-
-    theta = 1 
-
-    phi = 0 
-
-    results = compute_optimized_Y4(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
-
-    print (results) 
-    
-    theta = 0.5 
-
-    phi = 0.5 
-
-    results = compute_optimized_Y4(np.sin(theta), np.cos(theta), np.cos(phi), np.sin(phi))
-
-    print (results) 
-
     return None 
-
-#test_any_spherical_harmonics()
 
 
 #test_optimized_Y12()
 
+#test_optimized_Y4()
 
-test_optimized_Y4()
+test_any_spherical_harmonics()

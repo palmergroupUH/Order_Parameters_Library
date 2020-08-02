@@ -438,6 +438,22 @@ contains
 
         end subroutine 
 
+    pure subroutine optimized_Y8(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+        implicit none 
+        ! Passed
+        real(dp), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
+
+        ! Local
+        real(dp),dimension(1:8) :: sint, cost, sinp, cosp 
+
+        ! Return
+        complex(dp), intent(out), dimension(-8:8) :: Ylm
+
+        Ylm = 0.0d0       
+        ! assign the inital parameters
+
+
+        end subroutine 
 
     pure subroutine optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
             implicit none  
@@ -494,7 +510,7 @@ contains
 		    Ylm(1) = -0.473087347878780d0*CMPLX(cosp(1),sinp(1))*cost(1)*(-3+7.0d0*cost(2))*sint(1)
 		    Ylm(2) = 0.334523271778645d0 * CMPLX(cosp(2),sinp(2)) * (-1 + 7*cost(2))*sint(2)
 		    Ylm(3) = -1.25167147089835d0* CMPLX(cosp(3),sinp(3)) * (cost(1) *sint(3)) 
-		    Ylm(4) = 0.442532692444983 * CMPLX(cosp(4),sinp(4)) * sint(4)  
+		    Ylm(4) = 0.442532692444983d0 * CMPLX(cosp(4),sinp(4)) * sint(4)  
         
             end subroutine
 
