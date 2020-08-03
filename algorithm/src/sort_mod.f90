@@ -1,9 +1,9 @@
 !------------------------------------------- Program Descriptions ----------------------------------------
 
 ! This program contains following sorting algorithm:  
-	! 1. Bubble sort 	
-	! 2. Selection sort 
-	! 3. Quick sort 
+	! 1. Bubble sort
+	! 2. Selection sort
+	! 3. Quick sort
 
 
 
@@ -67,7 +67,7 @@ contains
             implicit none 
             integer,intent(in) :: i,j 
             integer,intent(inout),dimension(:) :: array 
-            integer,intent(inout),dimension(:) :: array_index 
+            integer,intent(inout),dimension(:), allocatable :: array_index 
             integer :: temp,temp_index 
 
             temp = array(i) 
@@ -88,7 +88,7 @@ contains
             implicit none 
             integer,intent(in) :: i,j 
             real(dp),intent(inout),dimension(:) :: array 
-            integer,intent(inout),dimension(:) :: array_index 
+            integer,intent(inout),dimension(:),allocatable :: array_index 
             real(dp) :: temp 
             integer :: temp_index 
 
@@ -110,7 +110,7 @@ contains
             implicit none 
             integer,intent(in) :: i,j 
             real(sp),intent(inout),dimension(:) :: array 
-            integer,intent(inout),dimension(:) :: array_index 
+            integer,intent(inout),dimension(:), allocatable:: array_index 
             real(sp) :: temp 
             integer :: temp_index 
 
@@ -140,10 +140,10 @@ contains
             integer :: i,j  
         
             ! Return 
-            integer(c_int),intent(inout),dimension(1:N) :: array 
-            integer(c_int),intent(out),dimension(1:N) :: array_index 
+            integer(c_int),intent(inout),dimension(1:N) :: array
+            integer(c_int),intent(out),dimension(:), allocatable :: array_index
 
-            !if ( present(order)) then
+            allocate(array_index(1:N)) 
 
             array_index = [ ( i,i=1,N) ]	
         
@@ -167,16 +167,16 @@ contains
             implicit none 
             ! Passed
             integer,intent(in) :: N 
-            real(c_float),intent(inout),dimension(1:N) :: array 
 
             ! Local 
             integer :: i,j  
 
             ! Return
-            integer(c_int),intent(out),dimension(1:N) :: array_index 
+            real(c_float),intent(inout),dimension(1:N) :: array 
+            integer(c_int), intent(out), dimension(:), allocatable :: array_index
 
-            !if ( present(order)) then
-
+            allocate(array_index(1:N))
+            
             array_index = [ ( i,i=1,N) ]	
         
             do i = 1,N -1 
@@ -202,11 +202,13 @@ contains
             real(dp),intent(inout),dimension(1:N) :: array 
         
             ! Local 
-            integer :: i,j,flag  
+            integer :: i,j, flag  
     
             ! Return
-            integer,intent(out),dimension(1:N) :: array_index 
+            integer,intent(out),dimension(:), allocatable :: array_index 
 
+            allocate(array_index(1:N)) 
+    
             array_index = [ ( i,i=1,N) ]	
 
             do i = 1,N -1 
@@ -412,7 +414,8 @@ contains
     pure subroutine partition_int(array,low,high,array_index,partition_at)
         implicit none 
         integer,intent(in) :: low,high 
-        integer,intent(inout),dimension(:) :: array,array_index 
+        integer,intent(inout),dimension(:) :: array
+        integer,intent(inout),dimension(:), allocatable :: array_index 
         integer :: pivot, i,j 
         integer,intent(out) :: partition_at 
 
@@ -445,7 +448,8 @@ contains
     pure recursive subroutine quick_sort_with_index_int(N,array,start,last,array_index) 
         implicit none 
         integer,intent(in) :: N,start,last 
-        integer,intent(inout),dimension(:) :: array,array_index  
+        integer,intent(inout),dimension(:) :: array
+        integer,intent(inout),dimension(:), allocatable :: array_index  
         integer :: q 
 
         if ( start < last ) then
@@ -464,8 +468,10 @@ contains
         implicit none 
         integer,intent(in) :: N,start,last 
         integer,intent(inout),dimension(:) :: array
-        integer,intent(out),dimension(:) :: array_index 
+        integer,intent(out),dimension(:), allocatable :: array_index 
         integer :: i 
+
+        allocate(array_index(1:N)) 
 
         array_index = [ ( i,i=1,N) ] 
         
@@ -476,7 +482,7 @@ contains
     pure subroutine partition_sp(array,low,high,array_index,partition_at)
         implicit none 
         integer,intent(in) :: low,high 
-        integer,intent(inout),dimension(:) :: array_index 
+        integer,intent(inout),dimension(:), allocatable:: array_index 
         real(sp),intent(inout),dimension(:) :: array 
         integer :: i,j 
         real(sp) :: pivot 
@@ -507,7 +513,7 @@ contains
     pure recursive subroutine quick_sort_with_index_sp(N,array,start,last,array_index) 
         implicit none 
         integer,intent(in) :: N,start,last 
-        integer,intent(inout),dimension(:) :: array_index  
+        integer,intent(inout),dimension(:), allocatable:: array_index  
         real(sp),intent(inout),dimension(:) :: array 
         integer :: q 
 
@@ -527,8 +533,10 @@ contains
         implicit none 
         integer,intent(in) :: N,start,last 
         real(sp),intent(inout),dimension(:) :: array
-        integer,intent(out),dimension(:) :: array_index 
+        integer,intent(out),dimension(:), allocatable :: array_index 
         integer :: i 
+
+        allocate(array_index(1:N))
 
         array_index = [ ( i,i=1,N) ] 
         
@@ -539,7 +547,7 @@ contains
     pure subroutine partition_dp(array,low,high,array_index,partition_at)
         implicit none 
         integer,intent(in) :: low,high 
-        integer,intent(inout),dimension(:) :: array_index 
+        integer,intent(inout),dimension(:),allocatable:: array_index 
         real(dp),intent(inout),dimension(:) :: array 
         integer :: i,j 
         real(dp) :: pivot 
@@ -570,8 +578,8 @@ contains
     pure recursive subroutine quick_sort_with_index_dp(N,array,start,last,array_index) 
         implicit none 
         integer,intent(in) :: N,start,last 
-        integer,intent(inout),dimension(:) :: array_index  
-        real(dp),intent(inout),dimension(:) :: array 
+        integer,intent(inout),dimension(:), allocatable:: array_index
+        real(dp),intent(inout),dimension(:) :: array
         integer :: q 
 
         if ( start < last ) then
@@ -590,10 +598,12 @@ contains
         implicit none 
         integer,intent(in) :: N,start,last 
         real(dp),intent(inout),dimension(:) :: array
-        integer,intent(out),dimension(:) :: array_index 
+        integer,intent(out),dimension(:), allocatable :: array_index 
         integer :: i 
 
-        array_index = [ ( i,i=1,N) ] 
+        allocate(array_index(1:N)) 
+
+        array_index = [(i,i=1,N)] 
         
         call quick_sort_with_index_dp(N,array,start,last,array_index) 
 
