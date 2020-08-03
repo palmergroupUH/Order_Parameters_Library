@@ -31,8 +31,8 @@ def scipy_spherical_harmonics(l,phi, theta):
     return real_img 
 
 def test_any_spherical_harmonics():
-    # test range for.
-    
+
+    # test order range for.
     l = [1,3,4,6,8,10,12]
 
     for order in l: 
@@ -114,4 +114,4 @@ def test_optimized_Y4():
 
 #test_optimized_Y4()
 
-test_any_spherical_harmonics()
+#test_any_spherical_harmonics()

@@ -13,16 +13,6 @@
 
 ! Note:
 ! Implementation of wigner3j symbol:
-! Reference Wigner3j symbol values for comparison
-! j1 j2 j3 m1 m2 m3 
-! 4  4  4  0 0 0  
-! 4  4  4  0 -1 1   
-
-! 4  4  4  -1 1 0   
-! 4  4  4  1 -1 0   
-! 4  4  4  0 2 -2   
-! 4  4  4  0 -3 3   
-! 4  4  4  -4 4 0   
 
 ! Date composed by Jingxiang Guo : 8/1/2020 
 
@@ -35,7 +25,7 @@ module wigner3j_symbol
 
 
 	! Export these subroutines/functions ( other subroutines/functions are still private) : 	
-	public :: compute_wigner3j_symbol 
+	public :: wigner_3j 
 
 	! Global variables
 
