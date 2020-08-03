@@ -23,7 +23,7 @@ constatns_file = ../general/src/constants_mod.f90
 
 include  = -I include
 
-all: factorial_mod.o spherical_harmonics_mod.o $(LIB_DIR)libsph.so $(LIB_DIR)libformath.a
+all: factorial_mod.o spherical_harmonics_mod.o $(LIB_DIR)libsph.so $(LIB_DIR)libformath.a $(LIB_DIR)libwigner3j.so
 
 factorial_mod.o: src/factorial_mod.f90
 
@@ -33,9 +33,13 @@ spherical_harmonics_mod.o: src/spherical_harmonics_mod.f90
 
 	$(FC) $(FFLAGS_S) $(linker_syslib) src/spherical_harmonics_mod.f90 $(local_include) $(sys_include) 
 
-$(LIB_DIR)libsph.so: src/factorial_mod.f90  src/spherical_harmonics_mod.f90 
+$(LIB_DIR)libsph.so: src/factorial_mod.f90  src/spherical_harmonics_mod.f90  
 
 	$(FC) $(FFLAGS_D) $(sys_include) src/factorial_mod.f90  src/spherical_harmonics_mod.f90 -o $(LIB_DIR)libsph.so $(local_include)
+
+$(LIB_DIR)libwigner3j.so: src/factorial_mod.f90  src/wigner3j_symobol_mod.f90
+
+	$(FC) $(FFLAGS_D) $(sys_include) src/factorial_mod.f90  src/wigner3j_symobol_mod.f90 -o $(LIB_DIR)libwigner3j.so $(local_include)
 
 $(LIB_DIR)libformath.a:  
 
