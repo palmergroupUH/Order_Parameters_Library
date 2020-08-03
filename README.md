@@ -2,8 +2,6 @@
 
 ## Features: 
 
-### Math and algorithm: 
-
 - [x] general spherical harmonics for any order
 
 - [x] optimized spherical harmonics at order 4 
@@ -18,6 +16,10 @@
 
 - [x] sorting algorithm (bubble, selection and quick sorting algorithm)
 
+- [x] CHILL/CHILL+ algorithm 
+
+- [x] Local/global second-order invariants  
+
 
 ## Other Features:
 
@@ -27,4 +29,4 @@
 
 * Modular design 
 
-
+ 
