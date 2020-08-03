@@ -1,19 +1,25 @@
-# An easy-to-use, efficient and customizable order parameter library for analysis of condensed matter system
+# A usable and efficient order parameter analysis library for condensed matter system
 
-## Include:
+## Features: 
 
-- [x] spherical harmonics 
+### Math and algorithm: 
 
-- [x] optimized order = 4 spherical harmonics
+- [x] general spherical harmonics for any order
 
-- [x] optimized order = 12 spherical harmonics
+- [x] optimized spherical harmonics at order 4 
+
+- [ ] optimized spherical harmonics at order 8
+
+- [x] optimized spherical harmonics at order 12
 
 - [x] Wigner3j symbol
 
-- [x] single linkage clustering algorithm (Two different methods)
+- [x] single linkage clustering algorithm
+
+- [x] sorting algorithm (bubble, selection and quick sorting algorithm)
 
 
-## Features:
+## Other Features:
 
 * C-callable Fortran routines
 
