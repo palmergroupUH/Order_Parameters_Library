@@ -12,7 +12,11 @@ module order_parameter
     implicit none
     private
     public :: initialize_Ylm, & 
+            ! Compute spherical harmonics
             & compute_ave_Ylm,& 
+            & compute_optimized_q4, & 
+            & compute_optimized_q12, & 
+            ! Compute the second/third order invariants 
             & local_bond_order, & 
             & global_bond_order, & 
             & build_homo_neighbor_list, &
@@ -21,7 +25,8 @@ module order_parameter
             & check_nb_list, &
             & neighbor_averaged_qlm, &
             & nnb_dot_product, &
-            & nnb_dot_product_and_bonds, &
+            & nnb_dot_product_crystal, &
+            & select_crystalline_particles, & 
             & calc_Wl, & 
             & convert_c_string_f_string
               
@@ -299,6 +304,9 @@ contains
 
         end subroutine 
 
+    ! General spherical harmonics for any order 
+    ! Optimized Y12 and Y4 are automatically used
+    ! at l = 12 or l = 4
     subroutine compute_ave_Ylm(sph_const,&
                               & Plm_const,&
                               & total_atoms,& 
@@ -381,6 +389,140 @@ contains
 
         end subroutine
 
+    ! Optimized spherical harmonics 
+    ! Currently, only l = 12 and l = 4 is supported:
+    ! These should give the same results as "compute_ave_Ylm"
+    ! at the given order. 
+    subroutine compute_optimized_q12(total_atoms, & 
+                                   & num_NB_list, &
+                                   & Rij,& 
+                                   & Ylm_ave)
+        implicit none 
+        ! Passed:
+        integer, intent(in) :: total_atoms 
+        integer,intent(in),dimension(:) :: num_NB_list 
+        real(dp),intent(in),dimension(:,:,:) :: Rij
+        
+        ! Local:
+        integer :: iatom, jnb, num_NB
+        complex(dp), dimension(-12:12) :: Ylm, Ylm_sum_nb
+        real(dp) :: rcx,rcy,rcz,rl
+        real(dp) :: sin_theta, cos_theta, sin_phi, cos_phi
+      
+        ! Return:
+        complex(dp), intent(out), dimension(-12:12,total_atoms) :: Ylm_ave
+
+        do iatom = 1, total_atoms
+    
+            Ylm_sum_nb = 0.0d0
+
+            num_NB = num_NB_list(iatom)
+
+            do jnb = 1, num_NB  
+
+                rcx = Rij(1,jnb,iatom) 
+    
+                rcy = Rij(2,jnb,iatom)
+
+                rcz = Rij(3,jnb,iatom) 
+
+                rl = Rij(4,jnb,iatom)
+
+                cos_theta = rcz/rl 
+
+                sin_theta = dsqrt(1-cos_theta*cos_theta)
+
+                if (sin_theta /= 0) then 
+
+                    cos_phi = rcx/(rl*sin_theta)
+
+                    sin_phi = rcy/(rl*sin_theta)
+
+                else 
+    
+                    cos_phi = 1.0d0
+        
+                    sin_phi = 0.0d0
+
+                end if 
+
+                call optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm) 
+
+                Ylm_sum_nb = Ylm_sum_nb + Ylm 
+
+            end do 
+
+            Ylm_ave(:,iatom) = Ylm_sum_nb/num_NB 
+
+        end do
+
+        end subroutine 
+                
+    subroutine compute_optimized_q4(total_atoms, & 
+                                  & num_NB_list, &
+                                  & Rij,& 
+                                  & Ylm_ave)
+        implicit none 
+        ! Passed:
+        integer, intent(in) :: total_atoms 
+        integer,intent(in),dimension(:) :: num_NB_list 
+        real(dp),intent(in),dimension(:,:,:) :: Rij
+        
+        ! Local:
+        integer :: iatom, jnb, num_NB
+        complex(dp), dimension(-4:4) :: Ylm, Ylm_sum_nb
+        real(dp) :: rcx,rcy,rcz,rl
+        real(dp) :: sin_theta, cos_theta, sin_phi, cos_phi
+      
+        ! Return:
+        complex(dp), intent(out), dimension(-4:4,total_atoms) :: Ylm_ave
+
+        do iatom = 1, total_atoms
+    
+            Ylm_sum_nb = 0.0d0
+
+            num_NB = num_NB_list(iatom)
+
+            do jnb = 1, num_NB  
+
+                rcx = Rij(1,jnb,iatom) 
+    
+                rcy = Rij(2,jnb,iatom)
+
+                rcz = Rij(3,jnb,iatom) 
+
+                rl = Rij(4,jnb,iatom)
+
+                cos_theta = rcz/rl 
+
+                sin_theta = dsqrt(1-cos_theta*cos_theta)
+
+                if (sin_theta /= 0) then 
+
+                    cos_phi = rcx/(rl*sin_theta)
+
+                    sin_phi = rcy/(rl*sin_theta)
+
+                else 
+    
+                    cos_phi = 1.0d0
+        
+                    sin_phi = 0.0d0
+
+                end if 
+
+                call optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, Ylm) 
+
+                Ylm_sum_nb = Ylm_sum_nb + Ylm 
+
+            end do 
+
+            Ylm_ave(:,iatom) = Ylm_sum_nb/num_NB 
+
+        end do
+
+        end subroutine         
+
     subroutine local_bond_order(total_atoms, l, Ylm_ave, local_ql) 
         implicit none 
 
@@ -417,7 +559,7 @@ contains
         complex(dp), intent(in), dimension(-l:l,total_atoms) :: Ylm_ave         
 
         ! Local:
-        integer :: i,  num_NB  
+        integer :: i,  num_NB 
         real(dp) :: norm_const 
         complex(dp), dimension(-l:l) :: sum_Ylm
 
@@ -569,7 +711,16 @@ contains
 
         end subroutine 
 
-    subroutine nnb_dot_product_and_bonds(total_atoms, nnb, l, NB_list, conntect_cut, qlm, cij, count_bonds)
+    subroutine nnb_dot_product_crystal(total_atoms,& 
+                                     & nnb,&
+                                     & l,&
+                                     & NB_list,&
+                                     & conntect_cut,&
+                                     & crys_bonds_cut,&
+                                     & qlm, & 
+                                     & cij, &
+                                     & count_bonds, & 
+                                     & its_crystal)
         implicit none 
 
         ! Passed
@@ -577,6 +728,7 @@ contains
         integer, intent(in) :: l
         integer, intent(in) :: nnb 
         real(dp), intent(in) :: conntect_cut
+        integer, intent(in) :: crys_bonds_cut 
         complex(dp), intent(in),dimension(:,:) :: qlm
         integer, intent(in),dimension(:,:) :: NB_list
 
@@ -588,10 +740,13 @@ contains
         ! Return
         real(dp),intent(out),dimension(1:nnb,1:total_atoms) :: cij
         real(dp), intent(out), dimension(1:total_atoms) :: count_bonds 
+        logical, intent(out), dimension(1:total_atoms) :: its_crystal
 
         cij = 0.0d0
 
         count_bonds = 0.0d0 
+
+        its_crystal = .False. 
 
         do i = 1, total_atoms
 
@@ -608,6 +763,8 @@ contains
 
                 qlm_norm_j = zsqrt(sum(Ylm_j*dconjg(Ylm_j)))
 
+                ! compute the dot product of two complex vectors
+
                 sum_ylm = 0.0d0
 
                 do m = -l, l
@@ -617,10 +774,9 @@ contains
                 end do
                 
                 !scalar_prod = dot_product((Ylm_i)/qlm_norm_i, (Ylm_j)/qlm_norm_j)  !SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j/qlm_norm_j)) 
-    
                 scalar_prod = sum_ylm/(qlm_norm_i*qlm_norm_j) 
 
-                cij(j,i) = scalar_prod  
+                cij(j,i) = scalar_prod
 
                 if (scalar_prod > conntect_cut) then
 
@@ -629,6 +785,13 @@ contains
                 end if 
 
             end do
+
+            ! if number of crystal bonds of a particle exceeds certain threshold
+            if (bonds_per_mol >= crys_bonds_cut) then 
+   
+                its_crystal(i) = .True.  
+                
+            end if 
 
             count_bonds(i) = bonds_per_mol 
 
@@ -763,6 +926,39 @@ contains
         end do
 
         end subroutine
+
+    subroutine select_crystalline_particles(total_atoms,its_crystal,num_crystal, crystal_id)
+        implicit none 
+        ! Passed
+        integer, intent(in) :: total_atoms 
+        logical, intent(in), dimension(1:total_atoms) :: its_crystal 
+
+        ! Local
+        integer :: i, counter 
+        
+        ! Return
+        integer, intent(out) :: num_crystal 
+        integer, intent(out), dimension(:), allocatable :: crystal_id 
+
+        counter = 0 
+
+        num_crystal = count(its_crystal) 
+
+        allocate(crystal_id(1:num_crystal))
+
+        do i = 1, total_atoms
+
+            counter = counter + 1  
+
+            if (its_crystal(i)) then  
+       
+                crystal_id(counter) = i  
+
+            end if 
+    
+        end do 
+        
+        end subroutine 
 
     subroutine convert_c_string_f_string(str,strlen,f_string)
         implicit none

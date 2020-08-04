@@ -132,7 +132,11 @@ def call_Ql_Wl(num_pairs_w3j,
 # ----------------------------------------------------------------------------
 
 
-def intialize_RussoRomanoTanaka(l):
+def intialize_RussoRomanoTanaka():
+    
+    l = 4 
+
+    num_pairs_w3j, wigner3j_symobl_ary, m_index_ary = generate_wigner3j_symobol_mat(l) 
 
     num_pairs_w3j, wigner3j_symobl_ary, m_index_ary = generate_wigner3j_symobol_mat(l)
 
@@ -144,11 +148,9 @@ def intialize_RussoRomanoTanaka(l):
 
     l = c_int(l)
 
-    RRTanaka_lib.initialize_RussoRomanoTanaka(byref(l), sph_const, Plm_const)
+    return num_pairs_w3j, wigner3j_symobl_ary, m_index_ary
 
-    return num_pairs_w3j, wigner3j_symobl_ary, m_index_ary, sph_const, Plm_const 
-
-def call_RussoRomanoTanaka(sph_const, Plm_const, total_atoms, l, xyz, box, maxnb, nnb, cutoff_sqr, crys_cut):
+def call_RussoRomanoTanaka(total_atoms, xyz, box, maxnb, nnb, cutoff_sqr, connect_cut, crys_cut):
 
     cij = np.ctypeslib.as_ctypes(np.zeros(nnb*total_atoms, dtype=np.float64))    
     
@@ -156,9 +158,9 @@ def call_RussoRomanoTanaka(sph_const, Plm_const, total_atoms, l, xyz, box, maxnb
 
     cutoff_sqr = c_double(cutoff_sqr)
 
-    crys_cut = c_double(crys_cut)
+    connect_cut = c_double(crys_cut)
 
-    l = c_int(l)
+    crys_cut = c_int(crys_cut)
 
     total_atoms = c_int(total_atoms)
 
@@ -166,24 +168,19 @@ def call_RussoRomanoTanaka(sph_const, Plm_const, total_atoms, l, xyz, box, maxnb
 
     nnb = c_int(nnb) 
 
-    RRTanaka_lib.call_RussoRomanoTanaka(sph_const,
-                                        Plm_const,
-                                        byref(total_atoms),
+    RRTanaka_lib.call_RussoRomanoTanaka(byref(total_atoms),
                                         byref(maxnb),
                                         byref(nnb),  
-                                        byref(l),
                                         byref(cutoff_sqr),
+                                        byref(connect_cut),
                                         byref(crys_cut),
                                         box,
                                         xyz,
-                                        cij,    
-                                        count_bonds)
+                                        cij)    
 
     cij = np.ctypeslib.as_array(cij)
 
-    count_bonds = np.ctypeslib.as_array(count_bonds) 
-    
-    return cij, count_bonds 
+    return cij
 
 # ----------------------------------------------------------------------------
 #                                 CHILL/CHILL+ 
