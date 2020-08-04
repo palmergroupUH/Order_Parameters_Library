@@ -1,6 +1,7 @@
 module CHILL
-    use system, only: c_int, c_double, dp, sp
+    use system, only: c_int, c_double, dp, sp, c_ptr, c_loc
     use order_parameter, only: build_homo_neighbor_list,&
+                             & rebuild_neighbor_list_nnb, &
                              & check_nb_list, & 
                              & apply_nearest_neighbor_crit, &  
                              & initialize_Ylm, & 
@@ -8,6 +9,12 @@ module CHILL
                              & neighbor_averaged_qlm, & 
                              & nnb_dot_product, & 
                              & convert_c_string_f_string
+
+    use cluster, only: single_linkage_cluster_by_Jeremy, & 
+                     & gen_cluster_nb_list, &
+                     & gen_cluster_ID_list, & 
+                     & get_largest_cluster 
+
     implicit none 
     private 
 
@@ -39,7 +46,9 @@ contains
                         & box, &
                         & xyz, &
                         & cij, &
-                        & chill_id_list) bind(c, name="call_CHILL")
+                        & cij_hist, &
+                        & chill_id_list,&
+                        & num_ice) bind(c, name="call_CHILL")
         implicit none 
 
         ! Passed:
@@ -61,15 +70,25 @@ contains
         real(dp), dimension(1:4, 1:maxnb, 1:total_atoms) :: Rij
         complex(dp),dimension(-l:l, total_atoms) :: Ylm
         character(len=:), allocatable :: CHILL_key 
+        real(dp), dimension(1:2) :: bins_range
+        real(dp) :: cluster_cut, start, finish  
+        real(dp) :: interval, upper, lower
+        integer :: largest_cluster, k, counter 
+        integer, dimension(1:20) :: bin_index
+        real(dp), dimension(1:nnb*total_atoms) :: cij_val
+        integer,dimension(:),allocatable :: ID_list, clinklist, cluster_member_head, largest_cluster_lst
+        integer,dimension(:),allocatable, target :: cluster_ID  
+        integer,dimension(:),pointer :: cluster_ID_ptr  
 
         ! Return:
+        real(c_double), intent(out), dimension(1:20) :: cij_hist
         real(c_double), intent(out), dimension(1:nnb, 1:total_atoms) :: cij
-        integer(c_int), intent(out),dimension(1:total_atoms) :: chill_id_list 
+        integer(c_int), intent(out), dimension(1:total_atoms) :: chill_id_list 
+        integer(c_int), intent(out) :: num_ice 
 
         call convert_c_string_f_string(CHILL_keyword, strlength, CHILL_key)
 
         ! get the neighbor list
-        
         call build_homo_neighbor_list(total_atoms, maxnb, cutoff_sqr, xyz, box, num_NB_list, NB_list, Rij) 
         
         ! check the neighbor list: 
@@ -86,7 +105,82 @@ contains
         
         ! apply the CHILL:
         call apply_CHILL_or_CHILL_plus(CHILL_key, total_atoms, nnb, cij, NB_list, chill_id_list)
+       
+        num_ice = count(chill_id_list /=4) 
+
+        ! histogram 
+
+        cluster_cut = 3.5d0
         
+        !call cpu_time(start) 
+        !call rebuild_neighbor_list_nnb(total_atoms, &
+                                     !& cluster_cut, &
+                                     !& maxnb, &
+                                     !& num_NB_list, &
+                                     !& NB_list, &
+                                     !& Rij)
+
+
+        !call cpu_time(finish) 
+    
+        !call single_linkage_cluster_by_Jeremy(total_atoms, num_NB_list, NB_list, 4, chill_id_list, largest_cluster)
+    
+        !print*, largest_cluster 
+
+        !print*, "Jeremy's largest cluster", largest_cluster  
+
+        counter = 0
+
+        allocate(ID_list(1:count(chill_id_list/=4)))
+
+        do k = 1,total_atoms
+
+            if ( chill_id_list(k) /= 4 ) then
+
+                counter = counter + 1
+
+                ID_list(counter) = k
+
+            end if
+
+        end do
+
+        cluster_cut = 3.5d0*3.5d0
+
+        call gen_cluster_nb_list(size(ID_list),xyz(:,ID_list),box,cluster_cut,clinklist)
+
+        call gen_cluster_ID_list(clinklist,size(ID_list),cluster_ID,cluster_member_head)
+
+        call get_largest_cluster(cluster_ID, largest_cluster)
+
+        print*, "Allen's largest cluster", largest_cluster
+
+        !cluster_ID_ptr => cluster_ID 
+
+        !cluster_ID_lst = c_loc(cluster_ID_ptr)
+
+        !print*, "CPU Time(s) by Allen Tildesley: ", finish - start
+       
+        bins_range = [-1, 1]
+
+        cij_val = reshape(cij, [1]) 
+
+        if (any(cij_val >=1) .or. any(reshape(cij, [1]) <= -1)) then
+        
+            stop
+
+        end if
+
+        upper = 1.0d0
+
+        lower = -1.0d0 
+
+        interval = 2/20.0d0
+
+        bin_index = int((cij_val-lower)/interval) + 1
+
+        cij_hist(bin_index) = cij_hist(bin_index) + 1
+
         end subroutine
 
     subroutine apply_CHILL_or_CHILL_plus(CHILL_keyword, total_atoms, nnb, cij, NB_list, chill_id_list)
@@ -156,11 +250,13 @@ contains
 
                 bond = cij(j,i)
 
-                if ( bond < -0.8d0 ) THEN
+                ! staggered bond (S) 
+                if ( bond <= -0.8d0 ) THEN
 
                     stagger = stagger + 1
 
-                else if ( bond < upper_bound .and. bond > lower_bound ) then
+                ! eclipsed bond (E) 
+                else if ( bond <= upper_bound .and. bond >= lower_bound ) then
 
                     eclipse = eclipse + 1
 

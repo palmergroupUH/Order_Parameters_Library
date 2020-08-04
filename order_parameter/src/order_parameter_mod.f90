@@ -1,11 +1,14 @@
 module order_parameter
-    use sorting, only: selection_sort 
+    use sorting, only: quick_sort 
     use system, only: c_int, c_double, dp, sp, error_unit 
     use constants, only: pi
     use spherical_harmonics, only: compute_spherical_harmonics, &
                                  & compute_spherical_harmonics_const,&
                                  & compute_associated_legendre_const,& 
-                                 & optimized_Q12
+                                 & optimized_Y12, & 
+                                 & optimized_Y4
+
+    use wigner3j_symbol, only: wigner_3j  
     implicit none
     private
     public :: initialize_Ylm, & 
@@ -13,12 +16,14 @@ module order_parameter
             & local_bond_order, & 
             & global_bond_order, & 
             & build_homo_neighbor_list, &
-            & apply_nearest_neighbor_crit, & 
-            & check_nb_list, &             
+            & rebuild_neighbor_list_nnb, & 
+            & apply_nearest_neighbor_crit, &
+            & check_nb_list, &
             & neighbor_averaged_qlm, &
-            & nnb_dot_product, & 
-            & nnb_dot_product_and_bonds, &  
-            & convert_c_string_f_string 
+            & nnb_dot_product, &
+            & nnb_dot_product_and_bonds, &
+            & calc_Wl, & 
+            & convert_c_string_f_string
               
 contains
 
@@ -94,6 +99,58 @@ contains
  
         end subroutine
 
+    subroutine rebuild_neighbor_list_nnb(total_atoms, &
+                                       & cutoff, &
+                                       & maxnb, &
+                                       & num_NB_list, &
+                                       & NB_list, &
+                                       & Rij)
+        implicit none 
+
+        ! Passed 
+        integer, intent(in) :: total_atoms 
+        integer, intent(in) :: maxnb 
+        real(dp), intent(in) :: cutoff 
+        real(dp), intent(in), dimension(:,:,:) :: Rij 
+
+        ! Local
+        integer, dimension(1:maxnb) :: temp_nb_lst 
+        integer :: count_nb
+        integer :: iatom, jnb 
+        real(dp) :: dist 
+
+        ! Return
+        integer, intent(inout), dimension(1:total_atoms) :: num_NB_list
+        integer, intent(inout), dimension(1:maxnb, 1:total_atoms) :: NB_list
+
+        do iatom = 1, total_atoms
+
+            count_nb = 0
+
+            temp_nb_lst = 0 
+
+            do jnb = 1, maxnb
+
+                dist = Rij(4,jnb, iatom)
+
+                if (dist <= cutoff .and. dist /= 0.0d0) then
+
+                    count_nb = count_nb + 1
+
+                    temp_nb_lst(count_nb) = NB_list(jnb, iatom)
+
+                end if
+
+            end do 
+
+            num_NB_list(iatom) = count_nb
+
+            NB_list(:, iatom) = temp_nb_lst
+    
+        end do 
+        
+        end subroutine 
+
     subroutine check_nb_list(num_NB_list,maxnb,nnb)
         implicit none
         integer,intent(in),dimension(:) :: num_NB_list
@@ -166,11 +223,11 @@ contains
 
             num_NB = num_NB_list(iatom)
             
-            call selection_sort(num_NB,Rij(4,1:num_NB,iatom),tracking_index, nnb)
+            call quick_sort(num_NB, Rij(4,1:num_NB,iatom),1,num_NB, tracking_index)
             
-            NB_list(1:nnb,iatom) = NB_list(tracking_index(1:nnb),iatom)
+            NB_list(1:num_NB,iatom) = NB_list(tracking_index,iatom)
 
-            Rij(1:3,1:nnb,iatom) = Rij(1:3,tracking_index(1:nnb),iatom)
+            Rij(1:3,1:num_NB,iatom) = Rij(1:3,tracking_index,iatom)
     
         end do
 
@@ -300,13 +357,17 @@ contains
 
                 end if 
 
-                if (l /= 12) then
+                if (l /= 12 .and. l /=4 ) then
                 
                     call compute_spherical_harmonics(sph_const, Plm_const, l, cos_theta, cos_phi, sin_phi, Ylm)
     
                 else if (l==12) then
                     
-                    call optimized_Q12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+                    call optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+            
+                else if (l==4) then 
+                    
+                    call optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
 
                 end if
     
@@ -328,42 +389,53 @@ contains
         complex(dp), intent(in), dimension(-l:l,total_atoms) :: Ylm_ave         
 
         ! Local:
-        integer :: i, norm_const 
+        integer :: i
+        real(dp) ::  norm_const 
         complex(dp), dimension(-l:l) :: local_Ylm  
 
         ! Return:
         real(dp), intent(out), dimension(1:total_atoms) :: local_ql 
                 
-        norm_const = 4*pi/(2*l+1) 
-
+        norm_const = (4.0d0*pi)/(2*l+1) 
+        
         do i = 1, total_atoms
 
-            local_Ylm = Ylm_ave(:,i) 
-
-            local_ql(i) = zsqrt(norm_const*sum(local_Ylm*dconjg(local_Ylm)))
-           
+            local_Ylm = Ylm_ave(:,i)
+    
+            local_ql(i) = zsqrt(norm_const*sum(local_Ylm*dconjg(local_Ylm))) 
+            
         end do 
 
         end subroutine 
 
-    subroutine global_bond_order(total_atoms, l, Ylm_ave)
+    subroutine global_bond_order(total_atoms, num_NB_list, l, Ylm_ave, global_op)
         implicit none 
 
         ! Passed 
         integer,intent(in) :: total_atoms,l  
+        integer, intent(in), dimension(:) :: num_NB_list
         complex(dp), intent(in), dimension(-l:l,total_atoms) :: Ylm_ave         
 
         ! Local:
-        integer :: i, norm_const 
+        integer :: i,  num_NB  
+        real(dp) :: norm_const 
         complex(dp), dimension(-l:l) :: sum_Ylm
 
         ! Return:
-        real(dp) :: global_op
-    
-        norm_const = 4*pi/(2*l+1)
+        real(dp), intent(out) :: global_op
 
-        sum_Ylm = sum(Ylm_ave, dim=1)
-   
+        sum_Ylm = 0.0d0
+
+        do i = 1, total_atoms
+
+            sum_Ylm = sum_Ylm + Ylm_ave(:,i)*num_NB_list(i)  
+
+        end do
+    
+        norm_const = 4.0d0*pi/(2*l+1)
+
+        sum_Ylm = sum_Ylm/sum(num_NB_list)
+
         global_op = zsqrt(norm_const*sum(sum_Ylm*dconjg(sum_Ylm)))
 
         end subroutine 
@@ -404,13 +476,14 @@ contains
 
         end subroutine 
 
-    subroutine nnb_dot_product(total_atoms, nnb, l, NB_list, qlm, cij)
+    subroutine non_nnb_product(total_atoms, num_NB_list, maxnb, l, NB_list, qlm, cij)
         implicit none
 
         ! Passed
         integer, intent(in) :: total_atoms
+        integer, intent(in), dimension(:) :: num_NB_list 
         integer, intent(in) :: l
-        integer, intent(in) :: nnb 
+        integer, intent(in) :: maxnb
         complex(dp),intent(in),dimension(:,:) :: qlm
         integer,intent(in),dimension(:,:) :: NB_list
 
@@ -418,6 +491,48 @@ contains
         real(dp) :: qlm_norm_i, qlm_norm_j
         complex(dp),dimension(-l:l) :: Ylm_i, Ylm_j
         integer :: i,j
+
+        ! Return
+        real(dp),intent(out),dimension(1:maxnb,1:total_atoms) :: cij
+
+        cij = 0.0d0
+
+        do i = 1, total_atoms
+
+            Ylm_i = qlm(:,i)
+
+            qlm_norm_i = zsqrt(sum(Ylm_i*dconjg(Ylm_i)))
+            
+            do j = 1, num_NB_list(i)
+    
+                ! Find neighbor j, and extract qlm 
+                Ylm_j = qlm(:,NB_list(j,i))
+
+                qlm_norm_j = zsqrt(sum(Ylm_j*dconjg(Ylm_j)))
+                
+                cij(j,i) = dot_product((Ylm_i)/qlm_norm_i, (Ylm_j)/qlm_norm_j)  !SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j/qlm_norm_j)) 
+                
+            end do
+
+        end do
+
+        end subroutine 
+    
+
+    subroutine nnb_dot_product(total_atoms, nnb, l, NB_list, qlm, cij)
+        implicit none
+
+        ! Passed
+        integer, intent(in) :: total_atoms
+        integer, intent(in) :: l
+        integer, intent(in) :: nnb
+        complex(dp),intent(in),dimension(:,:) :: qlm
+        integer,intent(in),dimension(:,:) :: NB_list
+
+        ! Local
+        real(dp) :: qlm_norm_i, qlm_norm_j, sum_ylm
+        complex(dp),dimension(-l:l) :: Ylm_i, Ylm_j
+        integer :: i,j, m 
 
         ! Return
         real(dp),intent(out),dimension(1:nnb,1:total_atoms) :: cij
@@ -436,9 +551,18 @@ contains
                 Ylm_j = qlm(:,NB_list(j,i))
 
                 qlm_norm_j = zsqrt(sum(Ylm_j*dconjg(Ylm_j)))
+    
+                sum_ylm = 0.0d0
+
+                do m  = -l, l
+               
+                    sum_ylm = sum_ylm + Ylm_i(m)*dconjg(Ylm_j(m))  
+
+                end do 
                 
-                cij(j,i) = dot_product((Ylm_i)/qlm_norm_i, (Ylm_j)/qlm_norm_j)  !SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j/qlm_norm_j)) 
-                
+                !cij(j,i) = dot_product((Ylm_i)/qlm_norm_i, (Ylm_j)/qlm_norm_j)  !SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j/qlm_norm_j)) 
+                cij(j,i) = sum_ylm/(qlm_norm_i*qlm_norm_j)  
+
             end do
 
         end do
@@ -453,13 +577,13 @@ contains
         integer, intent(in) :: l
         integer, intent(in) :: nnb 
         real(dp), intent(in) :: conntect_cut
-        complex(dp),intent(in),dimension(:,:) :: qlm
-        integer,intent(in),dimension(:,:) :: NB_list
+        complex(dp), intent(in),dimension(:,:) :: qlm
+        integer, intent(in),dimension(:,:) :: NB_list
 
         ! Local
-        real(dp) :: qlm_norm_i, qlm_norm_j, scalar_prod
+        real(dp) :: qlm_norm_i, qlm_norm_j, scalar_prod, sum_ylm 
         complex(dp),dimension(-l:l) :: Ylm_i, Ylm_j
-        integer :: i,j, bonds_per_mol 
+        integer :: i,j, bonds_per_mol, m  
 
         ! Return
         real(dp),intent(out),dimension(1:nnb,1:total_atoms) :: cij
@@ -483,10 +607,20 @@ contains
                 Ylm_j = qlm(:,NB_list(j,i))
 
                 qlm_norm_j = zsqrt(sum(Ylm_j*dconjg(Ylm_j)))
-                
-                scalar_prod = dot_product((Ylm_i)/qlm_norm_i, (Ylm_j)/qlm_norm_j)  !SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j/qlm_norm_j)) 
 
-                cij(j,i) = scalar_prod 
+                sum_ylm = 0.0d0
+
+                do m = -l, l
+    
+                    sum_ylm = sum_ylm + Ylm_i(m)*dconjg(Ylm_j(m))
+
+                end do
+                
+                !scalar_prod = dot_product((Ylm_i)/qlm_norm_i, (Ylm_j)/qlm_norm_j)  !SUM(Ylm_i/qlm_norm_i*DCONJG(Ylm_j/qlm_norm_j)) 
+    
+                scalar_prod = sum_ylm/(qlm_norm_i*qlm_norm_j) 
+
+                cij(j,i) = scalar_prod  
 
                 if (scalar_prod > conntect_cut) then
 
@@ -495,12 +629,140 @@ contains
                 end if 
 
             end do
-            
+
             count_bonds(i) = bonds_per_mol 
 
         end do
                 
         end subroutine 
+
+! -------------------------------------------------------------------------------------------------
+!                                    Third-Order Invariant Wl 
+! -------------------------------------------------------------------------------------------------
+
+    pure subroutine initialize_wigner3j(l, num_pairs, m1_m2_m3_sum0_mat, wigner_3j_symobol_mat)
+        implicit none 
+        ! Passed
+        integer, intent(in) :: l 
+    
+        ! Local 
+        
+        ! Retrun
+        integer, intent(out) :: num_pairs  
+        integer, intent(out), dimension(:,:), allocatable :: m1_m2_m3_sum0_mat
+        real(dp), intent(out), dimension(:), allocatable :: wigner_3j_symobol_mat
+         
+        num_pairs = count_pairs_m1_m2_m3(l)
+
+        allocate(m1_m2_m3_sum0_mat(1:3, 1:num_pairs))
+        allocate(wigner_3j_symobol_mat(1:num_pairs))
+
+        call wigner_3j_symbol_coefficients(l, num_pairs, m1_m2_m3_sum0_mat,wigner_3j_symobol_mat)         
+
+        end subroutine 
+
+    pure integer function count_pairs_m1_m2_m3(l)
+        implicit none
+        integer,intent(in) :: l
+        integer :: m1,m2,m3,counter
+
+        count_pairs_m1_m2_m3 = 0
+
+        do m1 = -l,l
+
+            do m2 = -l,l
+
+                do m3 = -l,l
+
+                    if ((m1+m2+m3) == 0) then
+
+                        count_pairs_m1_m2_m3 = count_pairs_m1_m2_m3 + 1
+
+                    end if
+
+                end do
+
+            end do
+
+        end do
+
+        end function
+
+    pure subroutine wigner_3j_symbol_coefficients(l, num_pairs, m1_m2_m3_sum0_mat,wigner_3j_symobol_mat)
+        implicit none
+
+        ! Passed 
+        integer,intent(in) :: l
+        integer, intent(in) :: num_pairs
+
+        ! Local
+        integer :: m1, m2, m3, counter
+
+        ! Return
+        integer, intent(inout), dimension(1:3,1:num_pairs) :: m1_m2_m3_sum0_mat
+        real(dp),intent(inout), dimension(1:num_pairs) :: wigner_3j_symobol_mat
+
+        counter = 0
+
+        do m1 = -l,l
+
+            do m2 = -l,l
+
+                do m3 = -l,l
+
+                    ! only m1 + m2 + m3 = 0 will be summed together 
+
+                    if (( m1+m2+m3 ) == 0)  Then
+
+                        counter = counter + 1
+
+                        wigner_3j_symobol_mat(counter) = wigner_3j(l,l,l,m1,m2,m3)
+
+                        m1_m2_m3_sum0_mat(:,counter) = [m1,m2,m3]
+
+                    end if
+
+                end do
+
+            end do
+
+        end do
+
+        end subroutine
+
+    subroutine calc_Wl(num_pairs,total_atoms, l,m1_m2_m3_sum0_mat,wigner_3j_symobol_mat,Qlm,calc_W)
+        implicit none
+        ! Passed
+        integer,intent(in) :: total_atoms,num_pairs,l
+        integer,intent(in),dimension(:,:) :: m1_m2_m3_sum0_mat
+        real(dp),intent(in),dimension(:) :: wigner_3j_symobol_mat
+        complex(dp),intent(in),dimension(-l:l,1:total_atoms) :: Qlm
+
+        ! Local
+        integer :: i,j
+        real(dp) :: calc_w_inter 
+    
+        ! Return
+        real(dp),intent(inout),dimension(:) :: calc_W
+
+        calc_w = 0.0d0
+
+        do i = 1,total_atoms
+
+            calc_w_inter = 0.0d0
+
+            do j = 1, num_pairs
+            
+                
+                calc_w_inter = calc_w_inter + product(Qlm(m1_m2_m3_sum0_mat(:,j),i)) * wigner_3j_symobol_mat(j)
+
+            end do
+    
+            calc_w(i) = calc_w_inter/((sum(Qlm(:, i)*dconjg(Qlm(:, i))))**(1.5d0))
+
+        end do
+
+        end subroutine
 
     subroutine convert_c_string_f_string(str,strlen,f_string)
         implicit none
