@@ -14,11 +14,11 @@
 
 - [x] single linkage clustering algorithm
 
-- [x] sorting algorithm (bubble, selection and quick sorting algorithm)
+- [x] local/global second-order and third-order invariants
 
 - [x] CHILL/CHILL+ algorithm 
 
-- [x] Local/global second-order invariants  
+- [x] Iq6 by Li et al.
 
 
 ## Other Features:
