@@ -3,7 +3,7 @@
 
 ## Examples: 
 
-<img src="Q4_W4.png" width="400">
+<img src="Q4_W4.png" width="500">
 
 ## Features: 
 
