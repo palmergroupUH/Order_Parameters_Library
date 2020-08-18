@@ -19,6 +19,8 @@ fortranlib_address = os.path.join(os.path.dirname(mathlib.__file__), "lib")
 
 sph_lib = CDLL(os.path.join(fortranlib_address, "libsph.so"))
 
+wigner3j_lib = CDLL(os.path.join(fortranlib_address, "libwigner3j.so"))
+
 def compute_associated_legendre_poly(l, m, cos_theta):
 
     preconst = np.ctypeslib.as_ctypes(np.zeros((l+1)*4, dtype=np.float64))
@@ -151,4 +153,62 @@ def compute_optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
     else:
 
         return Ylm_complex  
+
+def compute_optimized_Y6(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
+
+    # 2 is for real and imaginary part a complex vector
+   
+    cos_theta = c_double(cos_theta)
+
+    sin_theta = c_double(sin_theta)
+
+    cos_phi = c_double(cos_phi) 
+
+    sin_phi = c_double(sin_phi) 
+
+    Ylm_complex = np.ctypeslib.as_ctypes(np.zeros(13*2, dtype=np.float64))
+
+    sph_lib.call_optimized_Y6(byref(sin_theta),
+                              byref(cos_theta),
+                              byref(cos_phi), 
+                              byref(sin_phi), 
+                              Ylm_complex)
+
+    Ylm_complex = np.ctypeslib.as_array(Ylm_complex).reshape(2,13).T
+    
+    # if m is provided, return m value
+    if (m is not None):
+
+        index = m + l.value
+    
+        # unpack 2d arrays into real and img part
+        return complex(*Ylm_complex[index])
+
+    # if m is not provided, return Ylm 
+    else:
+
+        return Ylm_complex
+    
+def compute_wigner_3j(matrix): 
+
+    # declare the return type
+
+    wigner3j_lib.call_wigner3j_symobol.restype = c_double 
+
+    j1, j2, j3 = matrix[0, :]
+
+    m1, m2, m3 = matrix[1, :]
+
+    j1 = c_int(j1) ; j2 = c_int(j2) ; j3 = c_int(j3)  
+
+    m1 = c_int(m1) ; m2 = c_int(m2) ; m3 = c_int(m3)  
+
+    wigner3j = wigner3j_lib.call_wigner3j_symobol(byref(j1),
+                                                byref(j2),
+                                                byref(j3),
+                                                byref(m1),
+                                                byref(m2),
+                                                byref(m3))
+
+    return wigner3j  
 

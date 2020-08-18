@@ -11,7 +11,7 @@
 
 - [x] optimized spherical harmonics at order 4 
 
-- [ ] optimized spherical harmonics at order 8
+- [x] optimized spherical harmonics at order 6 
 
 - [x] optimized spherical harmonics at order 12
 

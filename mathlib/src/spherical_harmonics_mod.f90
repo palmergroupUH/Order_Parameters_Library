@@ -37,6 +37,7 @@ module spherical_harmonics
 			& compute_spherical_harmonics_const, & 			
 			& compute_spherical_harmonics,& 
             & optimized_Y12, &
+            & optimized_Y6, & 
             & optimized_Y4 
 
 	! Global variables
@@ -245,7 +246,7 @@ contains
 
 		sin_cos_phi(-l:-1,2) = -sin_cos_phi(l:1:-1,2)  
 
-		Exp_phi = cmplx(sin_cos_phi(:,1), sin_cos_phi(:,2))  	
+		Exp_phi = dcmplx(sin_cos_phi(:,1), sin_cos_phi(:,2))  	
 
 		end function 
 
@@ -309,16 +310,17 @@ contains
         
         end subroutine 
 
-    pure subroutine optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+    pure subroutine optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, Y)
             implicit none 
             ! Passed
             real(dp), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
 
             ! Local
             real(dp),dimension(1:12) :: sint, cost, sinp, cosp 
+            real(dp), dimension(-12:12) :: pre_and_post 
 
             ! Return
-            complex(dp), intent(out), dimension(-12:12) :: Ylm
+            complex(dp), intent(out), dimension(-12:12) :: Y
        
             ! assign the inital parameters 
             sint(1) = sin_theta
@@ -410,48 +412,158 @@ contains
 
 		    ! Update the harmonic sum
 	        ! From Mathmatica function: "SphericalHarmonicsY[12,m,theta, phi]"	
-		    Ylm(-12) = 0.566266663742191d0*cmplx(cosp(12),-sinp(12))*sint(12)
-		    Ylm(-11) = 2.77412876903310d0*CMPLX(cosp(11),-sinp(11))*sint(11)*cost(1)
-		    Ylm(-10) = 0.409022972331817d0*CMPLX(cosp(10),-sinp(10))*sint(10)*(-1+23*cost(2))
-		    Ylm(-9) = 1.10763944520068d0*CMPLX(cosp(9),-sinp(9))*sint(9)*cost(1)*(-3+23*cost(2))
-		    Ylm(-8) = 0.362560114310785d0*CMPLX(cosp(8),-sinp(8))*sint(8)*(1-42*cost(2)+161*cost(4))
-		    Ylm(-7) = 0.725120228621570d0*CMPLX(cosp(7),-sinp(7))*cost(1)*(5-70*cost(2)+161*cost(4))*sint(7)
-		    Ylm(-6) = 0.06791373178178367d0*CMPLX(cosp(6),-sinp(6))*(-5+285*cost(2)-1995*cost(4)+3059*cost(6))*sint(6)
-		    Ylm(-5) = 0.762329748554085d0*CMPLX(cosp(5),-sinp(5))*(-5+95*cost(2)-399*cost(4)+437*cost(6))*sint(5)*cost(1)
-		    Ylm(-4) = 0.06536923664453508d0*CMPLX(cosp(4),-sinp(4))*(5-340*cost(2)+3230*cost(4)-9044*cost(6)+7429*cost(8))*sint(4)
-		    Ylm(-3) = 0.08715898219271344d0*CMPLX(cosp(3),-sinp(3))*cost(1)*(45-1020*cost(2)+5814*cost(4)-11628*cost(6)+7429*cost(8))*sint(3)
-		    Ylm(-2) = 0.106747516436237d0*CMPLX(cosp(2),-sinp(2))*(-3+225*cost(2)-2550*cost(4)+9690*cost(6)-14535*cost(8)+7429*cost(10))*sint(2)
-		    Ylm(-1) = 0.01720392001939924d0*CMPLX(cosp(1),-sinp(1))*cost(1)*(-231+5775*cost(2)-39270*cost(4)+106590*cost(6)-124355*cost(8)+52003*cost(10))*sint(1)
-		    Ylm(0) = 0.001377415975458390d0*(231-18018*cost(2)+225225*cost(4)-1021020*cost(6)+2078505*cost(8)-1939938*cost(10)+676039*cost(12))
-		    Ylm(1) = -0.01720392001939924d0*CMPLX(cosp(1),sinp(1))*cost(1)*(-231+5775*cost(2)-39270*cost(4)+106590*cost(6)-124355*cost(8)+52003*cost(10))*sint(1)
-		    Ylm(2) = 0.106747516436237d0*CMPLX(cosp(2),sinp(2))*(-3+225*cost(2)-2550*cost(4)+9690*cost(6)-14535*cost(8)+7429*cost(10))*sint(2)
-		    Ylm(3) = -0.08715898219271344d0*CMPLX(cosp(3),sinp(3))*cost(1)*(45-1020*cost(2)+5814*cost(4)-11628*cost(6)+7429*cost(8))*sint(3)
-		    Ylm(4) = 0.06536923664453508d0*CMPLX(cosp(4),sinp(4))*(5-340*cost(2)+3230*cost(4)-9044*cost(6)+7429*cost(8))*sint(4)
-		    Ylm(5) = -0.762329748554085d0*CMPLX(cosp(5),sinp(5))*(-5+95*cost(2)-399*cost(4)+437*cost(6))*sint(5)*cost(1)
-		    Ylm(6) = 0.06791373178178367d0*CMPLX(cosp(6),sinp(6))*(-5+285*cost(2)-1995*cost(4)+3059*cost(6))*sint(6)
-		    Ylm(7) = -0.725120228621570d0*CMPLX(cosp(7),sinp(7))*cost(1)*(5-70*cost(2)+161*cost(4))*sint(7)
-		    Ylm(8) = 0.362560114310785d0*CMPLX(cosp(8),sinp(8))*sint(8)*(1-42*cost(2)+161*cost(4))
-		    Ylm(9) = -1.10763944520068d0*CMPLX(cosp(9),sinp(9))*sint(9)*cost(1)*(-3+23*cost(2))
-		    Ylm(10) = 0.409022972331817d0*CMPLX(cosp(10),sinp(10))*sint(10)*(-1 + 23*cost(2))
-		    Ylm(11) = -2.77412876903310d0*CMPLX(cosp(11),sinp(11))*sint(11)*cost(1)
-		    Ylm(12) = 0.566266663742191d0*CMPLX(cosp(12),sinp(12))*sint(12)
 
-        end subroutine 
+            pre_and_post(-12) = 0.566266663742191d0 * sint(12)
+            pre_and_post(-11) = 2.77412876903310d0 * sint(11)*cost(1)
+            pre_and_post(-10) = 0.409022972331817d0 * sint(10)*(-1.0d0+23.0d0*cost(2))
+            pre_and_post(-9) = 1.10763944520068d0 * sint(9)*(-3.0d0*cost(1) +23.0d0*cost(3))
+            pre_and_post(-8) = 0.362560114310785d0 * sint(8)*(1.0d0-42.0d0*cost(2)+161.0d0*cost(4))
+            pre_and_post(-7) = 0.725120228621570d0 * sint(7) * (5.0d0*cost(1)-70.0d0*cost(3)+161.0d0*cost(5))
+            pre_and_post(-6) = 0.06791373178178367d0 * sint(6)*(-5.0d0+285.0d0*cost(2)-1995.0d0*cost(4)+3059.0d0*cost(6))
+            pre_and_post(-5) = 0.762329748554085d0 * sint(5) * (-5.0d0*cost(1) + 95.0d0 *cost(3)-399.0d0 *cost(5)+437.0d0 *cost(7))
+            pre_and_post(-4) = 0.06536923664453508d0 * sint(4) * (5.0d0 - 340.0d0 *cost(2)+3230.0d0 *cost(4)-9044.0d0 *cost(6)+7429.0d0 *cost(8))
+            pre_and_post(-3) = 0.08715898219271344d0 * sint(3) * (45.0d0*cost(1)-1020.0d0 *cost(3)+ 5814.0d0 *cost(5)-11628.0d0 *cost(7)+ 7429.0d0 *cost(9))
+            pre_and_post(-2) = 0.106747516436237d0 * sint(2) *(-3.0d0 + 225.0d0 *cost(2)-2550.0d0 *cost(4)+ 9690.0d0 *cost(6)-14535.0d0 *cost(8)+7429.0d0 *cost(10))
+            pre_and_post(-1) = 0.01720392001939924d0 * sint(1) * (-231.0d0 * cost(1) +5775.0d0 *cost(3)-39270.0d0 *cost(5)+106590.0d0 *cost(7)-124355.0d0 *cost(9)+52003.0d0 *cost(11))
+            pre_and_post(0) = 0.001377415975458390d0 * (231.0d0 -18018.0d0 *cost(2)+225225.0d0 *cost(4)-1021020.0d0 *cost(6)+2078505.0d0 *cost(8)-1939938.0d0 *cost(10)+676039.0d0 *cost(12))
 
-    pure subroutine optimized_Y8(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+            pre_and_post(1) = -pre_and_post(-1)
+            pre_and_post(2) = pre_and_post(-2)
+            pre_and_post(3) = -pre_and_post(-3)
+            pre_and_post(4) = pre_and_post(-4)
+            pre_and_post(5) = -pre_and_post(-5)
+            pre_and_post(6) = pre_and_post(-6)
+            pre_and_post(7) = -pre_and_post(-7)
+            pre_and_post(8) = pre_and_post(-8)
+            pre_and_post(9) = -pre_and_post(-9)
+            pre_and_post(10) = pre_and_post(-10)
+            pre_and_post(11) = -pre_and_post(-11)
+            pre_and_post(12) = pre_and_post(-12)
+
+
+            Y(-12) = dCMPLX(cosp(12),-sinp(12))* pre_and_post(-12)
+            Y(-11) = dCMPLX(cosp(11),-sinp(11))* pre_and_post(-11)
+            Y(-10) = dCMPLX(cosp(10),-sinp(10))* pre_and_post(-10)
+            Y(-9) = dCMPLX(cosp(9),-sinp(9))* pre_and_post(-9)
+            Y(-8) = dCMPLX(cosp(8),-sinp(8))* pre_and_post(-8)
+            Y(-7) = dCMPLX(cosp(7),-sinp(7))* pre_and_post(-7)
+            Y(-6) = dCMPLX(cosp(6),-sinp(6))* pre_and_post(-6)
+            Y(-5) = dCMPLX(cosp(5),-sinp(5))* pre_and_post(-5)
+            Y(-4) = dCMPLX(cosp(4),-sinp(4))* pre_and_post(-4)
+            Y(-3) = dCMPLX(cosp(3),-sinp(3))* pre_and_post(-3)
+            Y(-2) = dCMPLX(cosp(2),-sinp(2))* pre_and_post(-2)
+            Y(-1) = dCMPLX(cosp(1),-sinp(1))* pre_and_post(-1)
+            Y(0) = pre_and_post(0)
+            Y(1) = dCMPLX(cosp(1),sinp(1))* pre_and_post(1)
+            Y(2) = dCMPLX(cosp(2),sinp(2))* pre_and_post(2)
+            Y(3) = dCMPLX(cosp(3),sinp(3))* pre_and_post(3)
+            Y(4) = dCMPLX(cosp(4),sinp(4))* pre_and_post(4)
+            Y(5) = dCMPLX(cosp(5),sinp(5))* pre_and_post(5)
+            Y(6) = dCMPLX(cosp(6),sinp(6))* pre_and_post(6)
+            Y(7) = dCMPLX(cosp(7),sinp(7))* pre_and_post(7)
+            Y(8) = dCMPLX(cosp(8),sinp(8))* pre_and_post(8)
+            Y(9) = dCMPLX(cosp(9),sinp(9))* pre_and_post(9)
+            Y(10) = dCMPLX(cosp(10),sinp(10))* pre_and_post(10)
+            Y(11) = dCMPLX(cosp(11),sinp(11))* pre_and_post(11)
+            Y(12) = dCMPLX(cosp(12),sinp(12))* pre_and_post(12)
+                            
+          end subroutine 
+
+    pure subroutine optimized_Y6(sin_theta, cos_theta, cos_phi, sin_phi, Y)
         implicit none 
         ! Passed
         real(dp), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
 
         ! Local
-        real(dp),dimension(1:8) :: sint, cost, sinp, cosp 
+        real(dp), dimension(1:6) :: sint, cost, sinp, cosp 
+        real(dp), dimension(-6:6) :: pre_and_post
 
         ! Return
-        complex(dp), intent(out), dimension(-8:8) :: Ylm
+        complex(dp), intent(out), dimension(-6:6) :: Y
 
-        Ylm = 0.0d0       
-        ! assign the inital parameters
+        Y = 0.0d0       
 
+        ! assign the inital parameters 
+        sint(1) = sin_theta
+
+        cost(1) = cos_theta
+
+        sinp(1) = sin_phi
+
+        cosp(1) = cos_phi
+
+        ! calculate powers of sin(theta)
+        sint(2) = sint(1)*sint(1)
+        sint(3) = sint(2)*sint(1)
+        sint(4) = sint(3)*sint(1) 
+        sint(5) = sint(4)*sint(1) 
+        sint(6) = sint(5)*sint(1) 
+
+        ! calculate powers of cos(theta)
+        cost(2) = cost(1)*cost(1)
+        cost(3) = cost(2)*cost(1)
+        cost(4) = cost(3)*cost(1)
+        cost(5) = cost(4)*cost(1)
+        cost(6) = cost(5)*cost(1)
+
+
+        ! calculate sin/cos (2phi)
+        sinp(2) = 2.0d0*sinp(1)*cosp(1)
+        cosp(2) = 2.0d0*cosp(1)**2 - 1.0d0
+
+        ! calculate sin/cos (3phi)
+        sinp(3) = sinp(2)*cosp(1) + cosp(2)*sinp(1)
+        cosp(3) = cosp(2)*cosp(1) - sinp(2)*sinp(1)
+
+
+        ! calculate sin/cos (4phi) 
+
+        sinp(4) = sinp(3)*cosp(1) + cosp(3)*sinp(1) 
+        cosp(4) = cosp(3)*cosp(1) - sinp(3)*sinp(1) 
+
+        ! calculate sin/cos (5phi) 
+
+        sinp(5) = sinp(4)*cosp(1) + cosp(4)*sinp(1) 
+        cosp(5) = cosp(4)*cosp(1) - sinp(4)*sinp(1) 
+
+        ! calculate sin/cos (6phi) 
+
+        sinp(6) = sinp(5)*cosp(1) + cosp(5)*sinp(1) 
+        cosp(6) = cosp(5)*cosp(1) - sinp(5)*sinp(1) 
+
+        ! Update the harmonic sum
+        ! From Mathmatica function: "SphericalHarmonicsY[4,m,theta, phi]"	
+    
+        ! pre and post factor: 
+
+        pre_and_post(-6) = 0.483084113580066d0 * sint(6)
+        pre_and_post(-5) = 1.67345245810010d0 * sint(5) * cost(1)
+        pre_and_post(-4) = 0.356781262853998d0 * (11.0d0 * cost(2)- 1.0d0) * sint(4)
+        pre_and_post(-3) = 0.651390485867716d0 * (-3.0d0*cost(1) + 11.0d0 * cost(3)) * sint(3)
+        pre_and_post(-2) = 0.325695242933858d0 * (1.0d0 - 18.0d0 * cost(2) + 33.0d0* cost(4)) * sint(2)
+        pre_and_post(-1) = 0.411975516301141d0 * (5.0d0*cost(1) - 30.0d0 * cost(3) + 33.0d0*cost(5)) * sint(1)
+        pre_and_post(0) = 0.06356920226762842d0 * (105.0d0 * cost(2) - 315.0d0 * cost(4) + 231.0d0 * cost(6) - 5.0d0)
+        pre_and_post(1) = -pre_and_post(-1)
+        pre_and_post(2) = pre_and_post(-2)
+        pre_and_post(3) = -pre_and_post(-3)
+        pre_and_post(4) = pre_and_post(-4)
+        pre_and_post(5) = -pre_and_post(-5)
+        pre_and_post(6) = pre_and_post(-6)
+
+
+        Y(-6) = dcmplx(cosp(6),-sinp(6))*pre_and_post(-6)  
+        Y(-5) = dcmplx(cosp(5),-sinp(5))*pre_and_post(-5) 
+        Y(-4) = dcmplx(cosp(4),-sinp(4))*pre_and_post(-4)  
+        Y(-3) = dcmplx(cosp(3),-sinp(3))*pre_and_post(-3) 
+        Y(-2) = dcmplx(cosp(2),-sinp(2))*pre_and_post(-2) 
+        Y(-1) = dcmplx(cosp(1),-sinp(1))*pre_and_post(-1)
+        Y(0) = pre_and_post(0) 
+        Y(1) = dcmplx(cosp(1),sinp(1))* pre_and_post(1) 
+        Y(2) = dcmplx(cosp(2),sinp(2))* pre_and_post(2)  
+        Y(3) = dcmplx(cosp(3),sinp(3))* pre_and_post(3) 
+        Y(4) = dcmplx(cosp(4),sinp(4))* pre_and_post(4)
+        Y(5) = dcmplx(cosp(5),sinp(5))* pre_and_post(5) 
+        Y(6) = dcmplx(cosp(6),sinp(6))* pre_and_post(6) 
 
         end subroutine 
 
@@ -461,7 +573,8 @@ contains
             real(dp), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
 
             ! Local
-            real(dp),dimension(1:4) :: sint, cost, sinp, cosp 
+            real(dp), dimension(1:4) :: sint, cost, sinp, cosp 
+            real(dp), dimension(-4:4) :: pre_and_post
 
             ! Return
             complex(dp), intent(out), dimension(-4:4) :: Ylm
@@ -502,15 +615,26 @@ contains
 
 		    ! Update the harmonic sum
 	        ! From Mathmatica function: "SphericalHarmonicsY[4,m,theta, phi]"	
-		    Ylm(-4) = 0.442532692444983d0 *CMPLX(cosp(4),-sinp(4))*sint(4) 
-		    Ylm(-3) = 1.25167147089835d0 *CMPLX(cosp(3),-sinp(3))*cost(1)*(sint(3)) 
-		    Ylm(-2) = 0.334523271778645d0 *CMPLX(cosp(2),-sinp(2))*(-1 + 7.0d0*cost(2))*sint(2) 
-		    Ylm(-1) = 0.473087347878780d0 * CMPLX(cosp(1),-sinp(1))*cost(1)*(-3.0d0 + 7.0d0*cost(2))*sint(1) 
-		    Ylm(0) =  0.105785546915204d0*(3-30.0d0*cost(2) + 35.0d0*cost(4))  
-		    Ylm(1) = -0.473087347878780d0*CMPLX(cosp(1),sinp(1))*cost(1)*(-3+7.0d0*cost(2))*sint(1)
-		    Ylm(2) = 0.334523271778645d0 * CMPLX(cosp(2),sinp(2)) * (-1 + 7*cost(2))*sint(2)
-		    Ylm(3) = -1.25167147089835d0* CMPLX(cosp(3),sinp(3)) * (cost(1) *sint(3)) 
-		    Ylm(4) = 0.442532692444983d0 * CMPLX(cosp(4),sinp(4)) * sint(4)  
+
+		    pre_and_post(-4) = 0.442532692444983d0 *sint(4)
+		    pre_and_post(-3) = 1.25167147089835d0 * cost(1)*(sint(3)) 
+		    pre_and_post(-2) = 0.334523271778645d0 * (-1 + 7.0d0*cost(2))*sint(2) 
+		    pre_and_post(-1) = 0.473087347878780d0 * (-3.0d0 * cost(1) + 7.0d0*cost(3))*sint(1) 
+		    pre_and_post(0) =  0.105785546915204d0 * (3.0d0 -30.0d0*cost(2) + 35.0d0*cost(4))
+		    pre_and_post(1) = -pre_and_post(-1) 
+		    pre_and_post(2) = pre_and_post(-2)  
+		    pre_and_post(3) = -pre_and_post(-3) 
+		    pre_and_post(4) = pre_and_post(-4) 
+
+		    Ylm(-4) = dCMPLX(cosp(4),-sinp(4)) * pre_and_post(-4)  
+		    Ylm(-3) = dCMPLX(cosp(3),-sinp(3))* pre_and_post(-3) 
+		    Ylm(-2) = dCMPLX(cosp(2),-sinp(2))* pre_and_post(-2)
+		    Ylm(-1) = dCMPLX(cosp(1),-sinp(1))* pre_and_post(-1) 
+		    Ylm(0) = pre_and_post(0) 
+		    Ylm(1) = dCMPLX(cosp(1),sinp(1))* pre_and_post(1)
+		    Ylm(2) = dCMPLX(cosp(2),sinp(2)) * pre_and_post(2) 
+		    Ylm(3) = dCMPLX(cosp(3),sinp(3)) * pre_and_post(3)  
+		    Ylm(4) = dCMPLX(cosp(4),sinp(4)) * pre_and_post(4) 
         
             end subroutine
 
@@ -528,6 +652,27 @@ contains
             real(c_double), intent(out), dimension(-12:12,2) :: Ylm_complex
 
             call optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+                   
+            Ylm_complex(:,1) = real(Ylm, dp) 
+
+            Ylm_complex(:,2) = dimag(Ylm)
+
+            end subroutine 
+
+    ! This subroutine is exposed as c callable 
+    pure subroutine call_optimized_6(sin_theta, cos_theta, cos_phi, sin_phi, Ylm_complex) bind(c, name="call_optimized_Y6")
+            implicit none 
+            ! Passed
+            real(c_double), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
+
+            ! Local
+            real(dp),dimension(1:6) :: sint, cost, sinp, cosp 
+            complex(dp), dimension(-6:6) :: Ylm 
+
+            ! Return
+            real(c_double), intent(out), dimension(-6:6,2) :: Ylm_complex
+
+            call optimized_Y6(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
                    
             Ylm_complex(:,1) = real(Ylm, dp) 
 
