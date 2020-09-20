@@ -28,3 +28,8 @@ old/*
 
 # ignore the log file
 *.log
+
+# ignore the error, output, and slurm_script file 
+*.err
+*.out
+run_script

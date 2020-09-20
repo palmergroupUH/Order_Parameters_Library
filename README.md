@@ -9,22 +9,29 @@
 
 - [x] general spherical harmonics for any order
 
-- [x] optimized spherical harmonics at order 4 
-
-- [x] optimized spherical harmonics at order 6 
-
-- [x] optimized spherical harmonics at order 12
+- [x] optimized spherical harmonics at order 4, 6, 12 
 
 - [x] Wigner3j symbol
 
-- [x] single linkage clustering algorithm
-
 - [x] local/global second-order and third-order invariants
+
+- [x] Coarse-grained/dot-product invariants
 
 - [x] CHILL/CHILL+ algorithm 
 
-- [x] Iq6 by Li et al.
+- [x] RussoRomanoTanaka order parameter 
 
+- [x] Iq6 order parameter by Li et al.
+
+- [x] single linkage clustering algorithm
+
+- [x] Tetrahedral order parameter algorithm 
+
+- [x] Pair Correlation Function
+
+- [] structure factor
+
+- [] Bhatia-Thornton Analysis 
 
 ## Other Features:
 
