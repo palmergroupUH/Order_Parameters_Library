@@ -7,9 +7,9 @@
 
 ## Features: 
 
-- [x] general spherical harmonics for any order
+- [x] General spherical harmonics for any order
 
-- [x] optimized spherical harmonics at order 4, 6, 12 
+- [x] Optimized spherical harmonics at order 4, 6, 12 
 
 - [x] Wigner3j symbol
 
@@ -23,15 +23,15 @@
 
 - [x] Iq6 order parameter by Li et al.
 
-- [x] single linkage clustering algorithm
+- [x] Single linkage clustering algorithm
 
 - [x] Tetrahedral order parameter algorithm 
 
 - [x] Pair Correlation Function
 
-- [] structure factor
+* [ ] Structure factor (Homogeneous and Binary)
 
-- [] Bhatia-Thornton Analysis 
+* [ ] Bhatia-Thornton Analysis 
 
 ## Other Features:
 

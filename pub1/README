@@ -1,0 +1,114 @@
+===============================================================================
+The Workflow to perform Bhatia-Thornton Analysis in water-like system: 
+
+                      By Jingxiang Guo 09/18/2020 
+
+===============================================================================
+
+Section 1:
+
+* Label and high and low q species 
+* compute their pair correlations 	
+
+===============================================================================
+
+1. compute the tetrahedral order parameter, q for each particle in the system
+	
+	a. use enough large cutoff such that every molecuel has at least 4 neighbors 
+
+	b. sort all neighbors to find 4 nearest neighbors and compute q from equation 
+ 
+2. label each particle as either "High q" or "Low q" 
+
+	a. use certain sorting algorithm ( quick sort used here ) to sort the q from smallest to largest and find q median 
+
+	b. if q < q median then, "Low q" and if q > q_median, "High q " 
+
+3. compute the distance pair correlation between: 
+
+	High q - High q 
+
+	High q - Low q
+
+	Low q - Low q 
+
+	all particles 
+
+4. dump the historgram of each type of pair corrlation to a file "RDF_HIST_'type'_'num_frames'.txt" 
+
+	a. Note: histogram is not normalized by density, total number of particles and local shell volume 
+
+	b. historgram file format:
+	
+	first row: N,Total number of particles accumulated each frame ( N = N + N_at_each_frame) 
+
+	second row: V,total volumes accumulated at each frame ( V = V + V_at_each_frame)  
+
+	third row: N-1,total_number of particles except reference particle its self ( N-1 = N-1 + N-1_at_each_frame)  
+
+	fourth row: total number of frames ( frame_counter = frame_counter + 1)  
+
+	fifth row: interval after choosing historgram bins ( half_box_size-0 )/num_bins
+
+Wait for step 4 to finish..............
+
+===============================================================================
+
+Section 2: 
+
+* compute finite-size corrected homogeneous and binary mixtures structure factors	
+* compute Bhatia Thornton structure factors
+
+===============================================================================
+
+5. read each type distance pair correlation histogram from file and compute binary partial structure factors
+
+	a. finite-size correction is used to computet all types of the pair correaltion function ( this is normalized ) 
+
+	b. finite-size correction is also used in computing partial structure factor but using uncorrected pair correlation  
+
+	c. different ranges of R, less than or equal to half of box size are used in compute the corrections: 
+	
+		silica: 4.28nm-4.3nm 
+
+		ST2: 4.0nm - 5.0nm for all structure factors and 3.0nm-3.5nm for pair correlations functions corrections ( following same range used in Patey's papers )  
+			
+6. compute the N-N ( density-dnesity), N-C (density-concentration)  and C-C (concentration-concentration ) structure factors from Bhatia-Thornton mehod
+
+	a. With the same scattering length of each binary species, N-N structure factors is conceptually same as fourier transform of all particle pair correlation
+
+	b. By convention, total structure factor can be split into normal compoent + anomalous structure factor
+
+	b. Uncoupled density and concentration structure factor, which is the normal compoent of total structure is also obtained from Bhatia-Thornton analysis. 
+
+	c. Anomalous part of total structure factor is computed as S_total - S_normal 
+
+8. Fit both the anomalous part of total structure factor and concentration structure factor to Lorentzian form 
+
+	a. define the region starting at qmin: (2*pi)/(half of box size) 
+
+	b. starting from qmin, locate qmax where of 1/SA or 1/SCC vs. q^2  is linear  ( qmin < q < qmax)  
+
+	c. compute the correlation length as  
+
+9. Fit the correlation length to a power-law form: correlation length =e0*(T/Tc-1)^-v
+
+	a. fix critical expoent v=0.63 ( Assuming Ising Universality is true for tetrahedral system)  
+
+	b. adjust parameters: Tc and e0 to best fit the correaltion length vs T/Tc-1 
+
+	c. The error bars of correlation length based on block analysis has to be taken into account in fitting 
+
+	d. Block analysis here is done by dividing the whole trajectories into 3-5 blocks equally and estimate the correlation length from each block 
+
+===============================================================================
+
+Section 3: 
+
+* Perform the fitting to the Lorenzian form
+
+* Perform the fitting of the correlation length
+
+===============================================================================
+
+		
