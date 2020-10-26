@@ -27,11 +27,19 @@
 
 - [x] Tetrahedral order parameter algorithm 
 
+- [x] Sorting algorithms (bubble, selection, and quick sort)
+
+- [x] Linear Regression 
+
 - [x] Pair Correlation Function
 
-* [ ] Structure factor (Homogeneous and Binary)
+- [x] Structure factor (Homogeneous and Binary)
 
-* [ ] Bhatia-Thornton Analysis 
+- [x] Finite-size corrections for canonical ensemble 
+
+- [x] Bhatia-Thornton Analysis 
+
+- [x] Ornstein-Zernike Correlation length 
 
 ## Other Features:
 
