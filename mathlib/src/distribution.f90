@@ -4,7 +4,7 @@ module histogram
 
     private 
 
-    public :: init_hist, combine_hist,array_into_hist, normalize_hist  
+    public :: init_hist, combine_hist,array_into_hist, normalize_hist, get_bin_id 
 
 contains 
 
@@ -99,4 +99,29 @@ contains
 
         end subroutine 
 
+    pure integer function get_bin_id(ranges, bin_interval, pos) 
+        implicit none 
+        real(dp), intent(in) :: pos, bin_interval 
+        real(dp), intent(in), dimension(1:2) :: ranges
+        real(dp) :: lower, upper     
+
+        lower = ranges(1) 
+
+        upper = ranges(2) 
+
+        if (pos < upper .and. pos > lower) then  
+
+            get_bin_id = int((pos-lower)/bin_interval) + 1
+
+        else if (pos < ranges(1) ) then 
+
+            get_bin_id = 0  
+
+        else if (pos == ranges(2)) then  
+        
+            get_bin_id = int((pos-lower)/bin_interval)
+
+        end if            
+        
+        end function 
 end module 

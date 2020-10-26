@@ -330,6 +330,31 @@ contains
 
         end subroutine 
 
-    
+    subroutine linear_regression_for_C(X_measure, & 
+                                     & Y_measure, & 
+                                     & num_data, & 
+                                     & results) bind(c, name="call_linear_regression")
+
+        implicit none 
+        ! Passed 
+        integer(c_int), intent(in) :: num_data 
+        real(c_double), intent(in), dimension(1:num_data) :: X_measure, Y_measure 
+
+        ! Local
+        integer :: i 
+        real(dp) :: x_bar, y_bar, diff_x, diff_y 
+        real(dp) :: sum_x_sqr, sum_y_sqr, sum_corss 
+        real(dp) :: s
+        real(dp) :: r_corr 
+        real(dp) :: r2, beta_0, beta_1, s_beta_0, s_beta_1
+
+        ! Return
+        real(c_double), intent(out), dimension(1:5) :: results
+
+        call linear_reg_dp(X_measure, Y_measure, num_data, r2, beta_1, beta_0, s_beta_1, s_beta_0)
+
+        results = [r2, beta_1, beta_0, s_beta_1, s_beta_0]
+
+        end subroutine
 
 end module 

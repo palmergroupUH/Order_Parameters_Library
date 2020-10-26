@@ -11,7 +11,9 @@ module bhatia_analysis
     use RDF, only: build_homo_pair_dist_hist, & 
                  & build_hetero_pair_dist_hist, & 
                  & normalize_hist 
-        
+       
+    use statistics, only: linear_reg 
+ 
     implicit none 
     private 
 
@@ -123,9 +125,9 @@ contains
         ! Return 
         real(c_double),intent(out),dimension(1:num_bins) :: rdf_histogram  
 
-        ! cutoff is half of the box size and convert the Angstrom to nm 
+        ! cutoff is half of the box size and convert the Angstrom to nm
         cutoff = minval(box)/20.d0
-         
+
         call build_hetero_pair_dist_hist(total_atoms_A, &
                                        & total_atoms_B, &
                                        & cutoff,&
@@ -134,7 +136,48 @@ contains
                                        & xyz(:, select_indx_B)/10.0d0, &
                                        & box/10.0d0,&
                                        & rdf_histogram) 
-                                        
+
+        end subroutine
+
+    subroutine compute_SA_SCC_lorentzian(num_SCC, & 
+                                       & Q_SCC, & 
+                                       & SCC, & 
+                                       & num_SA, &
+                                       & Q_SA, &
+                                       & SA, &
+                                       & corrlen_SA, & 
+                                       & corrlen_SCC) bind(c, name="call_SA_SCC_lorentzian")
+        implicit none 
+        ! Passed
+        integer(c_int), intent(in) :: num_SCC, num_SA 
+        real(c_double), intent(in), dimension(1:num_SCC) :: Q_SCC, SCC
+        real(c_double), intent(in), dimension(1:num_SA) :: Q_SA, SA
+
+        ! Local
+        real(dp) :: r2_SA, r2_SCC, slope_SA, interc_SA, s_beta_1, s_beta_0, slope_SCC, interc_SCC 
+        real(dp), dimension(1:num_SA) :: x_SA, y_SA
+        real(dp), dimension(1:num_SCC) :: x_SCC, y_SCC
+
+        ! Return
+        
+        real(c_double), intent(out) :: corrlen_SA, corrlen_SCC 
+
+        y_SA = 1/SA         
+
+        y_SCC = 1/SCC
+
+        x_SCC = Q_SCC **2
+
+        x_SA = Q_SA **2
+
+        call linear_reg(x_SA, y_SA, num_SA, r2_SA, slope_SA, interc_SA, s_beta_1, s_beta_0)
+        
+        call linear_reg(x_SCC, y_SCC, num_SCC, r2_SCC, slope_SCC, interc_SCC, s_beta_1, s_beta_0)
+        
+        corrlen_SA = dsqrt(slope_SA / interc_SA) 
+
+        corrlen_SCC = dsqrt(slope_SCC / interc_SCC) 
+
         end subroutine 
 
 end module  
