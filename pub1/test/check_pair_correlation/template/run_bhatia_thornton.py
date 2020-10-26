@@ -1,0 +1,107 @@
+# Python standard library
+import os
+import sys
+from ctypes import CDLL, c_int, c_double, c_long, c_float, byref
+
+# Local library:
+import IO.reader
+from IO.type_conversion import string_to_ctypes_string,\
+                               int_to_ctypes_int,\
+                               np_to_ctypes_array
+
+# Perform Bhatia Thornton anlysis
+from pub1.Bhatia_Thornton import compute_q_tetra, initialize_hist,\
+                                 update_pair_correl_hist, normalize_hist, \
+                                 compute_pair_correl, update_hist, \
+                                 normalize_pair_correl_hist, \
+                                 write_hist_file  
+
+# Third-party:
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def compute_high_low_q_correlation(keyword, An_to_nm, T, dcdfile):
+
+    # preprocessing the trajectories to extract total number of atoms and frames
+    total_atoms, total_frames = IO.reader.call_read_header(dcdfile) 
+
+    # set the number of bins for q distribution
+    num_bins_q_dist = 300
+
+    # set the number of bins for RDF
+    num_bins_rdf = 500
+
+    # initialize q tetrahedral histogram 
+    q_tetra_hist, q_interval, q_range = initialize_hist(num_bins_q_dist, -3.0, 1.0)    
+    
+    # get box size
+    xyz, box = IO.reader.call_read_dcd_xyz_box(dcdfile, 1, total_atoms, return_numpy=True) 
+    
+    half_box_size  = box.min()/(2.0*An_to_nm)  
+    
+    # initialize pair_correlation histogram
+    RDF_hist, rdf_interval, rdf_range = initialize_hist(num_bins_rdf, 0.0, half_box_size)  
+
+    # set the frame counter to count number of configurations used
+    frame_counter = 0
+    
+    # loop over all frames
+    for i in range(total_frames):
+    
+        # read xyz coordinates
+        xyz, box = IO.reader.call_read_dcd_xyz_box(dcdfile, i+1, total_atoms, return_numpy=False) 
+       
+        # compute q tetrahedral order parameter 
+        q_sorted_indx, q_tetra = compute_q_tetra(total_atoms, xyz, box)
+
+        # update q distribution
+        q_tetra_hist = update_hist(total_atoms, q_tetra, q_interval, -3.0, 1.0, num_bins_q_dist, q_tetra_hist)
+
+        # compute the pair correlation between species
+        new_hist, norm_atom = compute_pair_correl(keyword, num_bins_rdf, total_atoms, xyz, box, q_sorted_indx)
+        
+        # update pair correlation distribution
+        update_pair_correl_hist(num_bins_rdf, new_hist, RDF_hist)
+    
+        frame_counter += 1  
+
+    # normalize q tetrahedral order parameter distribution
+    r_mid, q_norm = normalize_hist(q_range, num_bins_q_dist, q_interval, q_tetra_hist)
+
+    # normalize the RDF
+    r2hr, gr = normalize_pair_correl_hist(RDF_hist, num_bins_rdf, half_box_size, norm_atom, frame_counter, box)
+   
+    # write out the RDF histogram for different
+    write_hist_file(keyword, total_atoms, box, frame_counter, rdf_interval, num_bins_rdf, RDF_hist) 
+
+    # write out the normalized r2hr
+    np.savetxt("r2hr.txt", np.c_[r2hr])
+
+    # write q tetrahedral distribution
+
+    np.savetxt("q_normalized_%d_run2.txt" % T, np.c_[r_mid, q_norm])
+
+    return None 
+
+
+# temperature will be used for file identifiers 
+T_MODIFY = 3425 
+
+# DCD file path
+dcdfile_MODIFY = "/project/palmer/Jingxiang/Trajectories/Publication_mWAC/traj/3425_run2.dcd" 
+
+# keyword type for pair correlation functions: 
+# "LDL_LDL" -> high q - high q 
+# "HDL_HDL" -> low q - low q 
+# "HDL_LDL" -> low q - high q
+# "All" -> all molecules  
+
+keyword_MODIFY = "All"
+
+# convert Angstrom to nm, the trajectories used "nm" for length
+An_to_nm = 10
+
+# run the analysis by submitting the job through slurm script or equivalent
+compute_high_low_q_correlation(keyword, An_to_nm, T, dcdfile) 
+
