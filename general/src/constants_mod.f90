@@ -9,7 +9,7 @@ module constants
 	implicit none 
 	! Global Variables:
 
-	real(dp),parameter,public :: pi = 3.14159265358979323d0 
+	real(dp),parameter,public :: pi = 3.14159265358979324d0 
 	real(dp),parameter,public :: Bohr = 0.529177d0 
 	real(dp),parameter,public :: Mole = 6.02214179E+23 
 	real(dp),parameter,public :: water_molar_mass = 18.01528 ! g/mol  

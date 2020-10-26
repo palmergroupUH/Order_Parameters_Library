@@ -7,7 +7,7 @@
 ! Date composed by Jingxiang Guo : 11/27/2019 
 
 module system 
-	use iso_c_binding ,only: c_int,c_double,c_char,c_float,c_short,c_long,c_ptr,c_loc 
+	use iso_c_binding ,only: c_int,c_double,c_char,c_float,c_short,c_long,c_ptr,c_loc, c_bool 
 	use iso_fortran_env,only : input_unit,output_unit,error_unit
 	implicit none 
 	! all variables and subroutines/functions are private  
@@ -31,9 +31,9 @@ module system
 	! Export these environmental variables: 
 	public :: input_unit,output_unit,error_unit, & 
 			  ! ctypes variable 
-			  & c_int,c_double,c_char,c_float,c_short,c_long,c_ptr, c_loc, &
+			  & c_int,c_double,c_char,c_float,c_short,c_long,c_ptr, c_loc,c_bool, &
 			  ! precision kind parameters: 
-			  & sp,dp,qp,cp,& 
+			  & sp,dp,qp,cp, & 
 			  ! command line variables:
 			  & num_arg,arg,& 
 			  & use_command_line,& 
