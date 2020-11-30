@@ -21,6 +21,8 @@ sph_lib = CDLL(os.path.join(fortranlib_address, "libsph.so"))
 
 wigner3j_lib = CDLL(os.path.join(fortranlib_address, "libwigner3j.so"))
 
+statiscs_lib = CDLL(os.path.join(fortranlib_address, "libstatistics.so"))  
+
 def compute_associated_legendre_poly(l, m, cos_theta):
 
     preconst = np.ctypeslib.as_ctypes(np.zeros((l+1)*4, dtype=np.float64))
@@ -96,6 +98,7 @@ def compute_optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
 
     sin_phi = c_double(sin_phi) 
 
+    # 25 is number of m and is computed  by 2*l + 1, where l = 12
     Ylm_complex = np.ctypeslib.as_ctypes(np.zeros(25*2, dtype=np.float64))
 
     sph_lib.call_optimized_Y12(byref(sin_theta),
@@ -119,6 +122,42 @@ def compute_optimized_Y12(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
 
         return Ylm_complex  
 
+def compute_optimized_Y8(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
+
+    # 2 is for real and imaginary part a complex vector
+   
+    cos_theta = c_double(cos_theta)
+
+    sin_theta = c_double(sin_theta)
+
+    cos_phi = c_double(cos_phi) 
+
+    sin_phi = c_double(sin_phi)
+
+    # 17 is number of m and is computed  by 2*l + 1, where l = 8
+    Ylm_complex = np.ctypeslib.as_ctypes(np.zeros(17*2, dtype=np.float64))
+
+    sph_lib.call_optimized_Y8(byref(sin_theta),
+                              byref(cos_theta),
+                              byref(cos_phi), 
+                              byref(sin_phi), 
+                              Ylm_complex)
+
+    Ylm_complex = np.ctypeslib.as_array(Ylm_complex).reshape(2,17).T
+    
+    # if m is provided, return m value
+    if (m is not None):
+
+        index = m + l.value
+    
+        # unpack 2d arrays into real and img part
+        return complex(*Ylm_complex[index])
+
+    # if m is not provided, return Ylm 
+    else:
+
+        return Ylm_complex
+
 def compute_optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
 
     # 2 is for real and imaginary part a complex vector
@@ -131,6 +170,7 @@ def compute_optimized_Y4(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
 
     sin_phi = c_double(sin_phi) 
 
+    # 9 is number of m and is computed  by 2*l + 1, where l = 4
     Ylm_complex = np.ctypeslib.as_ctypes(np.zeros(9*2, dtype=np.float64))
 
     sph_lib.call_optimized_Y4(byref(sin_theta),
@@ -166,6 +206,7 @@ def compute_optimized_Y6(sin_theta, cos_theta, cos_phi, sin_phi, m=None):
 
     sin_phi = c_double(sin_phi) 
 
+    # 13 is number of m and is computed  by 2*l + 1, where l = 6
     Ylm_complex = np.ctypeslib.as_ctypes(np.zeros(13*2, dtype=np.float64))
 
     sph_lib.call_optimized_Y6(byref(sin_theta),
@@ -211,4 +252,22 @@ def compute_wigner_3j(matrix):
                                                 byref(m3))
 
     return wigner3j  
+
+
+def linear_regression(x, y):
+
+    results = np.ctypeslib.as_ctypes(np.zeros(5,dtype=np.float64)) 
+
+    num_data = c_int(x.size) 
+
+    x = np.ctypeslib.as_ctypes(x) 
+
+    y = np.ctypeslib.as_ctypes(y) 
+
+    statiscs_lib.call_linear_regression(x, y, byref(num_data), results)  
+
+    return np.ctypeslib.as_array(results) 
+
+
+
 

@@ -469,6 +469,117 @@ contains
                             
           end subroutine 
 
+    pure subroutine optimized_Y8(sin_theta, cos_theta, cos_phi, sin_phi, Y)
+        implicit none 
+        ! Passed
+        real(dp), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
+
+        ! Local
+        real(dp), dimension(1:8) :: sint, cost, sinp, cosp 
+        real(dp), dimension(-8:8) :: pre_and_post
+
+        ! Return
+        complex(dp), intent(out), dimension(-8:8) :: Y
+
+        Y = 0.0d0       
+
+        ! assign the inital parameters 
+        sint(1) = sin_theta
+
+        cost(1) = cos_theta
+
+        sinp(1) = sin_phi
+
+        cosp(1) = cos_phi
+
+        ! calculate powers of sin(theta)
+        sint(2) = sint(1)*sint(1)
+        sint(3) = sint(2)*sint(1)
+        sint(4) = sint(3)*sint(1) 
+        sint(5) = sint(4)*sint(1) 
+        sint(6) = sint(5)*sint(1) 
+        sint(7) = sint(6)*sint(1) 
+        sint(8) = sint(7)*sint(1) 
+
+        ! calculate powers of cos(theta)
+        cost(2) = cost(1)*cost(1)
+        cost(3) = cost(2)*cost(1)
+        cost(4) = cost(3)*cost(1)
+        cost(5) = cost(4)*cost(1)
+        cost(6) = cost(5)*cost(1)
+        cost(7) = cost(6)*cost(1)
+        cost(8) = cost(7)*cost(1)
+
+        ! calculate sin/cos (2phi)
+        sinp(2) = 2.0d0*sinp(1)*cosp(1)
+        cosp(2) = 2.0d0*cosp(1)*cosp(1) - 1.0d0
+
+        ! calculate sin/cos (3phi)
+        sinp(3) = sinp(2)*cosp(1) + cosp(2)*sinp(1)
+        cosp(3) = cosp(2)*cosp(1) - sinp(2)*sinp(1)
+
+        ! calculate sin/cos (4phi) 
+
+        sinp(4) = sinp(3)*cosp(1) + cosp(3)*sinp(1) 
+        cosp(4) = cosp(3)*cosp(1) - sinp(3)*sinp(1) 
+
+        ! calculate sin/cos (5phi)
+
+        sinp(5) = sinp(4)*cosp(1) + cosp(4)*sinp(1) 
+        cosp(5) = cosp(4)*cosp(1) - sinp(4)*sinp(1) 
+
+        ! calculate sin/cos (6phi) 
+        sinp(6) = sinp(5)*cosp(1) + cosp(5)*sinp(1) 
+        cosp(6) = cosp(5)*cosp(1) - sinp(5)*sinp(1) 
+
+        ! calculate sin/cos (7phi) 
+
+        sinp(7) = sinp(6)*cosp(1) + cosp(6)*sinp(1) 
+        cosp(7) = cosp(6)*cosp(1) - sinp(6)*sinp(1) 
+
+        ! calculate sin/cos (8phi)
+
+        sinp(8) = sinp(7)*cosp(1) + cosp(7)*sinp(1) 
+        cosp(8) = cosp(7)*cosp(1) - sinp(7)*sinp(1) 
+
+        pre_and_post(-8) = 0.515428984397284d0 * sint(8)
+        pre_and_post(-7) = 2.06171593758914d0 * cost(1) * sint(7) 
+        pre_and_post(-6) = 0.376416108728495d0 * (-1.0d0 + 15.0d0 * cost(2) ) * sint(6) 
+        pre_and_post(-5) = 2.43945519537307d0 * (cost(1) * (-1.0d0 + 5.0d0 * cost(2))*sint(5)) 
+        pre_and_post(-4) = 0.338291568889025d0 * (1.0d0 - 26.0d0 * cost(2) + 65.0d0 * cost(4)) * sint(4)  
+        pre_and_post(-3) = 0.873465074979714d0 * cost(1) * (3.0d0 - 26.0d0 * cost(2) + 39.0d0 * cost(4)) * sint(3) 
+        pre_and_post(-2) = 0.322548355192883d0 * (-1.0d0 + 33.0d0 * cost(2) - 143.0d0 * cost(4) + 143.0d0 * cost(6)) * sint(2)  
+        pre_and_post(-1) = 0.07710380440405712d0 * cost(1) * (-35.d0 + 385.0d0 * cost(2) - 1001d0*cost(4) + 715d0*cost(6)) * sint(1) 
+        pre_and_post(0) = 0.009086770491564996d0 * (35.0d0 - 1260d0* cost(2) + 6930d0*cost(4) - 12012d0*cost(6) + 6435d0*cost(8))
+        pre_and_post(1) = -pre_and_post(-1)
+        pre_and_post(2) = pre_and_post(-2)
+        pre_and_post(3) = -pre_and_post(-3)
+        pre_and_post(4) = pre_and_post(-4)
+        pre_and_post(5) = -pre_and_post(-5)
+        pre_and_post(6) = pre_and_post(-6)
+        pre_and_post(7) = -pre_and_post(-7)
+        pre_and_post(8) = pre_and_post(-8)
+
+        Y(-8) = dcmplx(cosp(8),-sinp(8)) * pre_and_post(-8)  
+        Y(-7) = dcmplx(cosp(7),-sinp(7)) * pre_and_post(-7)  
+        Y(-6) = dcmplx(cosp(6),-sinp(6)) * pre_and_post(-6)  
+        Y(-5) = dcmplx(cosp(5),-sinp(5)) * pre_and_post(-5) 
+        Y(-4) = dcmplx(cosp(4),-sinp(4)) * pre_and_post(-4)  
+        Y(-3) = dcmplx(cosp(3),-sinp(3)) * pre_and_post(-3) 
+        Y(-2) = dcmplx(cosp(2),-sinp(2)) * pre_and_post(-2) 
+        Y(-1) = dcmplx(cosp(1),-sinp(1)) * pre_and_post(-1)
+        Y(0) = pre_and_post(0)  
+        Y(1) = dcmplx(cosp(1),sinp(1)) * pre_and_post(1) 
+        Y(2) = dcmplx(cosp(2),sinp(2)) * pre_and_post(2)  
+        Y(3) = dcmplx(cosp(3),sinp(3)) * pre_and_post(3) 
+        Y(4) = dcmplx(cosp(4),sinp(4)) * pre_and_post(4)
+        Y(5) = dcmplx(cosp(5),sinp(5)) * pre_and_post(5) 
+        Y(6) = dcmplx(cosp(6),sinp(6)) * pre_and_post(6) 
+        Y(7) = dcmplx(cosp(7),sinp(7)) * pre_and_post(7) 
+        Y(8) = dcmplx(cosp(8),sinp(8)) * pre_and_post(8) 
+        
+        end subroutine 
+ 
     pure subroutine optimized_Y6(sin_theta, cos_theta, cos_phi, sin_phi, Y)
         implicit none 
         ! Passed
@@ -660,7 +771,28 @@ contains
             end subroutine 
 
     ! This subroutine is exposed as c callable 
-    pure subroutine call_optimized_6(sin_theta, cos_theta, cos_phi, sin_phi, Ylm_complex) bind(c, name="call_optimized_Y6")
+    pure subroutine call_optimized_Y8(sin_theta, cos_theta, cos_phi, sin_phi, Ylm_complex) bind(c, name="call_optimized_Y8")
+            implicit none 
+            ! Passed
+            real(c_double), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
+
+            ! Local
+            real(dp),dimension(1:8) :: sint, cost, sinp, cosp 
+            complex(dp), dimension(-8:8) :: Ylm 
+
+            ! Return
+            real(c_double), intent(out), dimension(-8:8,2) :: Ylm_complex
+
+            call optimized_Y8(sin_theta, cos_theta, cos_phi, sin_phi, Ylm)
+                   
+            Ylm_complex(:,1) = real(Ylm, dp) 
+
+            Ylm_complex(:,2) = dimag(Ylm)
+
+            end subroutine 
+
+    ! This subroutine is exposed as c callable 
+    pure subroutine call_optimized_Y6(sin_theta, cos_theta, cos_phi, sin_phi, Ylm_complex) bind(c, name="call_optimized_Y6")
             implicit none 
             ! Passed
             real(c_double), intent(in) :: sin_theta, cos_theta, cos_phi, sin_phi 
