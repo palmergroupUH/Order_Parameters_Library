@@ -9,11 +9,11 @@
 
 - [x] General spherical harmonics for any order
 
-- [x] Optimized spherical harmonics at order 4, 6, 12 
+- [x] Optimized spherical harmonics at order 4, 6, 8, 12 
 
 - [x] Wigner3j symbol
 
-- [x] local/global second-order and third-order invariants
+- [x] Local/global second-order and third-order invariants
 
 - [x] Coarse-grained/dot-product invariants
 

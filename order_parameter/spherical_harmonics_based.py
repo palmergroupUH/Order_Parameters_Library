@@ -150,15 +150,29 @@ def intialize_RussoRomanoTanaka():
 
     return num_pairs_w3j, wigner3j_symobl_ary, m_index_ary
 
-def call_RussoRomanoTanaka(total_atoms, xyz, box, maxnb, nnb, cutoff_sqr, connect_cut, crys_cut):
+def call_RussoRomanoTanaka(num_pairs,
+                           wigner3j_symobl_ary,
+                           m_index_ary,
+                           total_atoms,
+                           xyz,
+                           box,
+                           maxnb,
+                           nnb,
+                           cutoff_sqr,
+                           connect_cut,
+                           crys_cut):
+
+    m_index_ary = np.ctypeslib.as_ctypes(m_index_ary.astype(np.int32))
+
+    wigner3j_symobl_ary = np.ctypeslib.as_ctypes(wigner3j_symobl_ary.astype(np.float64))
 
     cij = np.ctypeslib.as_ctypes(np.zeros(nnb*total_atoms, dtype=np.float64))    
-    
+
     count_bonds = np.ctypeslib.as_ctypes(np.zeros(total_atoms, dtype=np.float64))
 
     cutoff_sqr = c_double(cutoff_sqr)
-
-    connect_cut = c_double(crys_cut)
+    
+    connect_cut = c_double(connect_cut)
 
     crys_cut = c_int(crys_cut)
 
@@ -168,7 +182,12 @@ def call_RussoRomanoTanaka(total_atoms, xyz, box, maxnb, nnb, cutoff_sqr, connec
 
     nnb = c_int(nnb) 
 
-    RRTanaka_lib.call_RussoRomanoTanaka(byref(total_atoms),
+    num_pairs = c_int(num_pairs)
+
+    RRTanaka_lib.call_RussoRomanoTanaka(byref(num_pairs),  
+                                        m_index_ary,
+                                        wigner3j_symobl_ary, 
+                                        byref(total_atoms),
                                         byref(maxnb),
                                         byref(nnb),  
                                         byref(cutoff_sqr),
@@ -176,11 +195,12 @@ def call_RussoRomanoTanaka(total_atoms, xyz, box, maxnb, nnb, cutoff_sqr, connec
                                         byref(crys_cut),
                                         box,
                                         xyz,
-                                        cij)    
+                                        cij,
+                                        count_bonds)    
 
     cij = np.ctypeslib.as_array(cij)
 
-    return cij
+    return cij, np.ctypeslib.as_array(count_bonds)
 
 # ----------------------------------------------------------------------------
 #                                 CHILL/CHILL+ 
@@ -286,6 +306,5 @@ def call_Li_et_al(sph_const, Plm_const, total_atoms, maxnb, nnb, l, cutoff_sqr, 
                          Iij)
 
     return np.ctypeslib.as_array(Iij) 
-
 
 

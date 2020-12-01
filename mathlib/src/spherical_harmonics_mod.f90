@@ -37,6 +37,7 @@ module spherical_harmonics
 			& compute_spherical_harmonics_const, & 			
 			& compute_spherical_harmonics,& 
             & optimized_Y12, &
+            & optimized_Y8, & 
             & optimized_Y6, & 
             & optimized_Y4 
 

@@ -23,11 +23,19 @@ constatns_file = ../general/src/constants_mod.f90
 
 include  = -I include
 
-all: factorial_mod.o spherical_harmonics_mod.o statistics.o $(LIB_DIR)libsph.so $(LIB_DIR)libformath.a $(LIB_DIR)libwigner3j.so $(LIB_DIR)libforhist.so
+all: distribution.o factorial_mod.o spherical_harmonics_mod.o statistics.o $(LIB_DIR)libsph.so $(LIB_DIR)libformath.a $(LIB_DIR)libwigner3j.so $(LIB_DIR)libforhist.so $(LIB_DIR)libstatistics.so
+
+distribution.o: src/distribution.f90
+
+	$(FC) $(FFLAGS_S) $(linker_syslib) src/distribution.f90 $(local_include) $(sys_include) 
 
 $(LIB_DIR)libforhist.so: src/distribution.f90
 
 	$(FC) $(FFLAGS_D) $(linker_syslib) src/distribution.f90 $(local_include) $(sys_include) -o $(LIB_DIR)libforhist.so 
+
+$(LIB_DIR)libstatistics.so: src/statistics.f90
+
+	$(FC) $(FFLAGS_D) $(linker_syslib) src/statistics.f90 $(local_include) $(sys_include) -o $(LIB_DIR)libstatistics.so 
 
 factorial_mod.o: src/factorial_mod.f90
 
@@ -51,7 +59,7 @@ $(LIB_DIR)libwigner3j.so: src/factorial_mod.f90  src/wigner3j_symobol_mod.f90
 
 $(LIB_DIR)libformath.a:  
 
-	ar -cvq $(LIB_DIR)libformath.a factorial_mod.o spherical_harmonics_mod.o statistics.o  
+	ar -cvq $(LIB_DIR)libformath.a factorial_mod.o spherical_harmonics_mod.o statistics.o distribution.o  
 
 .PHONY: all clean count
 
