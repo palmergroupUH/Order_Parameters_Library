@@ -1,0 +1,4 @@
+
+# Load a Python and its corresponding numpy
+
+f2py -c -m oplib oplib.f90 --fcompiler=intelem --f90flags='-O3'
