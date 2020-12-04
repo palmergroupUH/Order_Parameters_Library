@@ -1,6 +1,6 @@
-### Validating the HMC order parameter 
+## Validating the HMC order parameter 
 
-#### Test trajectory description:
+### Test trajectory description:
 
 * 512 mW coarse-grained model of water
 
@@ -12,7 +12,7 @@
 
 * Spontaneous crystallization 
 
-#### Instructions:
+### Instructions:
 
 * If the pytest is installed
 
@@ -20,7 +20,7 @@
 pytest 
 ``` 
 
-otherwise
+* otherwise, 
 
 ```
 python test_order_parameter.py  
