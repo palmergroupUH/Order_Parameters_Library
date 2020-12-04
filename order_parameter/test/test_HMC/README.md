@@ -26,10 +26,3 @@ pytest
 python test_order_parameter.py  
 ```
 
-### Benchmark
-
-| High mem Cluster | Allen & Tidesley |
-| -----------      | -----------      |
-| Header      | Title       |
-| Paragraph   | Text        |
-
