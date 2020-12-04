@@ -90,24 +90,5 @@ contains
 		
 		end function 
 
-	pure function linspace_dp(first, last, num) 
-		implicit none 
-		integer,intent(in) :: num 
-		real(dp),intent(in) :: first,last 
-		real(dp) :: interval 
-		integer :: i
-		real(dp),dimension(:),allocatable :: linspace_dp  	
-
-		interval = (last-first)/(num-1) 
-
-		allocate(linspace_dp(1:num)) 
-		
-		do i = 1,num
-			
-			linspace_dp(i) = first + interval*(i-1) 
-
-		end do 	
-		
-		end function 
 
 end module 

@@ -29,17 +29,17 @@
 
 - [x] Sorting algorithms (bubble, selection, and quick sort)
 
-- [x] Linear Regression 
+- [x] Linear regression 
 
-- [x] Pair Correlation Function
+- [x] Pair correlation function
 
-- [x] Structure factor (Homogeneous and Binary)
+- [x] Structure factor (homogeneous and binary)
 
-- [x] Finite-size corrections for canonical ensemble 
+- [x] Finite-size corrections of gr in canonical ensemble 
 
-- [x] Bhatia-Thornton Analysis 
+- [x] Bhatia-Thornton analysis 
 
-- [x] Ornstein-Zernike Correlation length 
+- [x] Ornstein-Zernike correlation length 
 
 ## Other Features:
 
