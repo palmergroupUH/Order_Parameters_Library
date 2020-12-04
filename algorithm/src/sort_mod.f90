@@ -559,11 +559,11 @@ contains
 
         do j = low, high - 1 
 
-            if ( array(j) <= pivot ) then 
+            if (array(j) <= pivot) then 
         
                 i = i + 1 
             
-                call exchange_ij(array,i,j,array_index)		
+                call exchange_ij(array,i,j,array_index)
 
             end if 
             
