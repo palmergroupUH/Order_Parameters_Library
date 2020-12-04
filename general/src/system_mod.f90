@@ -1,8 +1,8 @@
 !----------------------------------------------- Program Descriptions ----------------------------------------------- 
 
-! This program contains programming environment information used by current compiler 
+! This program contains programming environment information used by current intel compiler
 
-! The variables defined could be used by all modules in the library 
+! These system variables can be used by other modules 
 
 ! Date composed by Jingxiang Guo : 11/27/2019 
 
@@ -13,9 +13,6 @@ module system
 	! all variables and subroutines/functions are private  
 	private 
 	
-	! Placeholders variables (separating input and output in subroutine argument):
-	integer :: O__O
-
 	! To make code portable, select appropriate precision:
 	integer,parameter :: sp = selected_real_kind(6, 37) ! Use Single Precision
 	integer,parameter :: dp = selected_real_kind(15,307) ! Use Double Precision
@@ -38,7 +35,6 @@ module system
 			  & num_arg,arg,& 
 			  & use_command_line,& 
 			  ! placeholders variables 
-			  & O__O,& 
               & convert_c_string_f_string 
 		
 			
@@ -68,7 +64,7 @@ contains
         character(len=:),allocatable,intent(out) :: f_string         
         integer :: i 
 
-        f_string = " "
+        f_string = ""
 
         do i = 1,strlen
 
