@@ -19,7 +19,7 @@ import order_parameter
 fortranlib_address = os.path.join(os.path.dirname(order_parameter.__file__), "lib")
 
 # Load RussoRomanoTanaka library 
-RRTanaka_lib = CDLL(os.path.join(fortranlib_address, "lib_RussoRomanoTanaka.so"))
+RRTanaka_lib = CDLL(os.path.join(fortranlib_address, "lib_RussoTanaka.so"))
 
 # Load CHILL library 
 CHILL_lib = CDLL(os.path.join(fortranlib_address, "lib_CHILL.so"))
@@ -219,75 +219,58 @@ def call_Ql_Wl(num_pairs_w3j,
 # ----------------------------------------------------------------------------
 
 
-def intialize_RussoRomanoTanaka():
-    
-    l = 4 
-
-    num_pairs_w3j, wigner3j_symobl_ary, m_index_ary = generate_wigner3j_symobol_mat(l) 
-
-    num_pairs_w3j, wigner3j_symobl_ary, m_index_ary = generate_wigner3j_symobol_mat(l)
-
-    l_dim = 2*l + 1 
-
-    sph_const = np.ctypeslib.as_ctypes(np.zeros(l_dim, dtype=np.float64))
-    
-    Plm_const = np.ctypeslib.as_ctypes(np.zeros((l+1)*4, dtype=np.float64))
-
-    l = c_int(l)
-
-    return num_pairs_w3j, wigner3j_symobl_ary, m_index_ary
-
-def call_RussoRomanoTanaka(num_pairs,
-                           wigner3j_symobl_ary,
-                           m_index_ary,
-                           total_atoms,
+def call_RussoRomanoTanaka(total_atoms,
                            xyz,
                            box,
                            maxnb,
                            nnb,
-                           cutoff_sqr,
-                           connect_cut,
-                           crys_cut):
+                           l,
+                           ql_cutoff,
+                           n_bonds): 
+                           
 
-    m_index_ary = np.ctypeslib.as_ctypes(m_index_ary.astype(np.int32))
+    label = np.ctypeslib.as_ctypes(np.zeros(total_atoms, dtype=np.int32))  
 
-    wigner3j_symobl_ary = np.ctypeslib.as_ctypes(wigner3j_symobl_ary.astype(np.float64))
+    Ql_invar = np.ctypeslib.as_ctypes(np.zeros(total_atoms, dtype=np.float64))  
 
-    cij = np.ctypeslib.as_ctypes(np.zeros(nnb*total_atoms, dtype=np.float64))    
+    Wl_invar = np.ctypeslib.as_ctypes(np.zeros(total_atoms, dtype=np.float64)) 
 
-    count_bonds = np.ctypeslib.as_ctypes(np.zeros(total_atoms, dtype=np.float64))
-
-    cutoff_sqr = c_double(cutoff_sqr)
+    ql_cutoff_sqr = c_double(ql_cutoff * ql_cutoff)
     
-    connect_cut = c_double(connect_cut)
-
-    crys_cut = c_int(crys_cut)
-
     total_atoms = c_int(total_atoms)
+
+    l = c_int(l)
 
     maxnb = c_int(maxnb)
 
     nnb = c_int(nnb) 
 
-    num_pairs = c_int(num_pairs)
+    n_bonds = c_int(n_bonds) 
 
-    RRTanaka_lib.call_RussoRomanoTanaka(byref(num_pairs),  
-                                        m_index_ary,
-                                        wigner3j_symobl_ary, 
-                                        byref(total_atoms),
-                                        byref(maxnb),
-                                        byref(nnb),  
-                                        byref(cutoff_sqr),
-                                        byref(connect_cut),
-                                        byref(crys_cut),
-                                        box,
-                                        xyz,
-                                        cij,
-                                        count_bonds)    
+    nxtl = c_int()
 
-    cij = np.ctypeslib.as_array(cij)
+    RRTanaka_lib.call_Russo_Romano_Tanaka(byref(total_atoms),  
+                                          box,
+                                          xyz, 
+                                          byref(maxnb),
+                                          byref(nnb),  
+                                          byref(l), 
+                                          byref(ql_cutoff_sqr),
+                                          byref(n_bonds), 
+                                          byref(nxtl), 
+                                          label,
+                                          Ql_invar, 
+                                          Wl_invar)
+        
+    label = np.ctypeslib.as_array(label)
+    
+    Ql_invar = np.ctypeslib.as_array(Ql_invar)
+    
+    Wl_invar = np.ctypeslib.as_array(Wl_invar)
 
-    return cij, np.ctypeslib.as_array(count_bonds)
+    num_crys = nxtl.value 
+
+    return num_crys, label, Ql_invar, Wl_invar 
 
 # ----------------------------------------------------------------------------
 #                                 CHILL/CHILL+ 

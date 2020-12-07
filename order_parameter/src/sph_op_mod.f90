@@ -27,7 +27,8 @@ module sph_op
             & compute_dij, &
             & compute_nnb_dij_bond, &
             & compute_dij_bond, & 
-            & lablel_crystal_like, & 
+            & label_crystal_like, & 
+            & initialize_wigner3j, &
             & calc_Wl 
 
 contains 
@@ -606,7 +607,7 @@ contains
                 
         end subroutine 
 
-    subroutine lablel_crystal_like(total_atoms, nxtl, n_bonds, n_dij_bonds, crystal_id)
+    subroutine label_crystal_like(total_atoms, nxtl, n_bonds, n_dij_bonds, crystal_id)
         implicit none 
 
         ! Passed
@@ -619,11 +620,9 @@ contains
         integer :: counter, i
 
         ! Return
-        integer, intent(out), dimension(:), allocatable  :: crystal_id
+        integer, intent(out), dimension(1:total_atoms) :: crystal_id
     
         counter = 0
-
-        allocate(crystal_id(1:nxtl))
 
         crystal_id = 0 
 

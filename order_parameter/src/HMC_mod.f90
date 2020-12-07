@@ -10,7 +10,7 @@ module HMC
                     & coarse_grained_qlm, &
                     & compute_nnb_dij_bond, &
                     & compute_dij_bond, & 
-                    & lablel_crystal_like  
+                    & label_crystal_like  
 
     use cluster, only: largest_cluster_high_mem , & 
                      & Allen_Tidesley_cluster 
@@ -179,7 +179,7 @@ contains
         real(dp), dimension(1:nnb, 1:total_atoms) :: dij
         integer, dimension(1:total_atoms) :: n_dij_bonds 
         real(dp) :: crys_cutoff_sqr, start, finish  
-        integer, dimension(:), allocatable :: crystal_id 
+        integer, dimension(1:total_atoms) :: crystal_id 
 
         ! Return:
         integer, intent(inout), dimension(:) :: num_NB_list
@@ -203,7 +203,7 @@ contains
         call largest_cluster_high_mem(total_atoms, num_NB_list, NB_list, n_bonds, n_dij_bonds, largest_cluster) 
 
         ! To use Allen-Tidesely code:
-        ! 1. Uncomment the following two routines: "lablel_crystal_like" and "Allen_Tidesley_cluster"
+        ! 1. Uncomment the following two routines: "label_crystal_like" and "Allen_Tidesley_cluster"
         ! 2. Also, make sure the xyz, box and crystal_cutoff are passed as an argument 
         
         if (present(crys_cutoff)) then 
@@ -212,9 +212,9 @@ contains
 
         end if 
         
-        !call lablel_crystal_like(total_atoms, nxtl, n_bonds, n_dij_bonds, crystal_id)
+        !call label_crystal_like(total_atoms, nxtl, n_bonds, n_dij_bonds, crystal_id)
 
-        !call Allen_Tidesley_cluster(size(crystal_id), xyz(:, crystal_id), box, crys_cutoff_sqr, largest_cluster)
+        !call Allen_Tidesley_cluster(nxtl, xyz(:, crystal_id(1:nxtl)), box, crys_cutoff_sqr, largest_cluster)
 
         end subroutine 
 
@@ -253,7 +253,7 @@ contains
         real(dp), dimension(1:maxnb, 1:total_atoms) :: dij
         integer, dimension(1:total_atoms) :: n_dij_bonds 
         real(dp) :: crys_cutoff_sqr 
-        integer, dimension(:), allocatable :: crystal_id 
+        integer, dimension(1:total_atoms) :: crystal_id 
         
         ! Return:
         integer, intent(out) :: nxtl, largest_cluster 
@@ -276,7 +276,7 @@ contains
         call largest_cluster_high_mem(total_atoms, num_NB_list, NB_list, n_bonds, n_dij_bonds, largest_cluster)
 
         ! To use Allen-Tidesely code:
-        ! 1. Uncomment the following two routines: "lablel_crystal_like" and "Allen_Tidesley_cluster"
+        ! 1. Uncomment the following two routines: "label_crystal_like" and "Allen_Tidesley_cluster"
         ! 2. Also, make sure the "xyz", "box" and "crys_cutoff" are passed as an argument 
 
         if (present(crys_cutoff)) then 
@@ -285,9 +285,9 @@ contains
 
         end if 
         
-        !call lablel_crystal_like(total_atoms, nxtl, n_bonds, n_dij_bonds, crystal_id)
-        
-        !call Allen_Tidesley_cluster(size(crystal_id), xyz(:, crystal_id), box, crys_cutoff_sqr, largest_cluster)
+        !call label_crystal_like(total_atoms, nxtl, n_bonds, n_dij_bonds, crystal_id)
+
+        !call Allen_Tidesley_cluster(nxtl, xyz(:, crystal_id(1:nxtl)), box, crys_cutoff_sqr, largest_cluster)
 
 
         end subroutine

@@ -30,7 +30,7 @@ sph_lib = src/sph_op_mod.f90
 
 nb_list_lib = src/nb_list_mod.f90 
 
-all:  $(LIB_DIR)lib_HMC.so $(LIB_DIR)lib_HMC_q3.so 
+all:  $(LIB_DIR)lib_HMC.so $(LIB_DIR)lib_HMC_q3.so $(LIB_DIR)lib_RussoTanaka.so  
 
 # ----------------------------------------------------------------------------
 #                             HMC
@@ -47,9 +47,20 @@ $(LIB_DIR)lib_HMC_q3.so: src/oplib_q3_only.f90
 
 	$(FC) $(FFLAGS_D) src/oplib_q3_only.f90 -module include/ -o $(LIB_DIR)lib_HMC_q3.so 
 
+# ----------------------------------------------------------------------------
+#                             RussoTanaka
+# ----------------------------------------------------------------------------
+#
+$(LIB_DIR)lib_RussoTanaka.so: $(cluster_lib) $(sys_lib) $(math_lib_factorial) $(math_lib_sph) $(math_lib_wign3j) $(sorting_lib) $(sph_lib) $(nb_list_lib) src/Russo_Romano_Tanaka_mod.f90
+
+	$(FC) $(FFLAGS_D) $(const_include) $(sys_lib) $(math_lib_factorial) $(math_lib_sph) $(math_lib_wign3j) $(sorting_lib) $(cluster_lib) $(sph_lib) $(nb_list_lib) src/Russo_Romano_Tanaka_mod.f90 -o $(LIB_DIR)lib_RussoTanaka.so $(local_include)
+
 .PHONY: all clean count
 
 clean:
 
 	rm *.o 
+
+
+
 
