@@ -18,7 +18,7 @@ from order_parameter.op_lib import calc_q3_cluster_HMC
 # Third-party:
 import numpy as np
 
-def test_HMC_ReinhardtDoye():
+def test_ReinhardtDoye_op():
 
     dcdfile = "test_traj.dcd"
 
@@ -55,7 +55,7 @@ def test_HMC_ReinhardtDoye():
 
     return None 
 
-def test_HMC_RussoTanaka():
+def test_RussoTanaka_op():
     
     dcdfile = "test_traj.dcd"
 
@@ -88,13 +88,11 @@ def test_HMC_RussoTanaka():
 
         nxtl_new, largest_cluster_q12 = calc_q12_cluster(n_q12_neigh=16, q12_cutoff=6, crys_cutoff=3.6, n_bonds=12, box=box, x=xyz, n_atoms=total_atoms)  
 
-        print (largest_cluster_lib) 
-
         assert largest_cluster_lib == largest_cluster_q12  
 
     return None 
 
-test_HMC_ReinhardtDoye()
+test_ReinhardtDoye_op()
 
-test_HMC_RussoTanaka()
+test_RussoTanaka_op()
 
