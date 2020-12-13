@@ -1,0 +1,6 @@
+
+# Load a Python and its corresponding numpy
+#
+module load python/2.7.15
+
+f2py -c -m oplib oplib_ql.f90 --fcompiler=intelem --f90flags='-O3'
