@@ -329,18 +329,21 @@ SUBROUTINE calc_q3_cluster(n_atoms,n_q3_neigh,q3_cutoff,n_bonds,box,x,largest_cl
   
 END SUBROUTINE
 
-SUBROUTINE calc_Q6_cg(n_atoms,n_q6_neigh,q6_cutoff,n_bonds,box,x, Q6iatom) 
+SUBROUTINE calc_Q6_cg(n_atoms, n_q6_neigh, q6_cutoff, q6_c, box, x, nxtl, largest_cluster) 
+
+  ! Neighbor-averaged qlm by Lechner and Dellago 
 
   IMPLICIT NONE
     
   ! Passed
   INTEGER,INTENT(IN) :: n_atoms
   INTEGER,INTENT(IN) :: n_q6_neigh
-  INTEGER,INTENT(IN) :: n_bonds
+  DOUBLE PRECISION,INTENT(IN) :: q6_c
   DOUBLE PRECISION,INTENT(IN) :: q6_cutoff
   DOUBLE PRECISION,INTENT(IN) :: box
   DOUBLE PRECISION,INTENT(IN),DIMENSION(0:3*n_atoms-1) :: x
-  DOUBLE PRECISION,INTENT(OUT),DIMENSION(n_atoms) :: Q6iatom
+  DOUBLE PRECISION ,DIMENSION(n_atoms) :: Q6iatom
+  INTEGER,INTENT(OUT) :: nxtl, largest_cluster
 
   ! Local
   INTEGER :: i,j,k,m 
@@ -368,7 +371,13 @@ SUBROUTINE calc_Q6_cg(n_atoms,n_q6_neigh,q6_cutoff,n_bonds,box,x, Q6iatom)
   complex*16 :: sum_q6(-6:6,1:n_atoms) , Q6_cg(-6:6,1:n_atoms) 
   DOUBLE PRECISION :: scalar_Q6i_Q6j
   !INTEGER, DIMENSION(n_atoms) :: n_dij_bonds
-  !DOUBLE PRECISION, DIMENSION(75,n_atoms) :: dij
+
+  ! Clustering
+  INTEGER :: n_clusters
+  INTEGER :: clusterID,clusterID_old, d6ijcounter
+  INTEGER,DIMENSION(n_atoms) :: cluster_size, cluster_ID
+  INTEGER,DIMENSION(n_atoms, n_atoms) :: cluster_lst
+  LOGICAL,DIMENSION(n_atoms) :: InCluster, visited
 
   Q6iatom = 0.0d0
 
@@ -611,11 +620,104 @@ SUBROUTINE calc_Q6_cg(n_atoms,n_q6_neigh,q6_cutoff,n_bonds,box,x, Q6iatom)
     END DO 
 
     ! compute the second order invariants of coarse-grained Q6
-    Q6iatom(iatom) = factor*dSQRT(sum_Q6_norm)
+    Q6iatom(iatom) = factor * dSQRT(sum_Q6_norm)
  
   END DO
   
-END SUBROUTINE 
+  ! neighbor averaged Q6 cutoff for crystal-like particles 
+
+  nxtl = 0 
+
+  DO iatom = 1, n_atoms 
+
+      if (Q6iatom(iatom) > q6_c) then 
+        
+        nxtl = nxtl + 1
+            
+      end if  
+    
+  END DO
+  
+  ! Initialize variables
+  largest_cluster = 0
+  InCluster = .FALSE. !FALSE if atom i not in a cluster 
+  n_clusters = 0
+  cluster_size = 0
+  cluster_lst = 0
+  cluster_ID = 0
+
+  !Loop over the atoms
+  
+  DO iatom = 1,n_atoms
+
+    clusterID = 0
+
+    IF (Q6iatom(iatom) < q6_c) CYCLE
+
+      InCluster(iatom) = .TRUE.
+  
+      !Search iatoms's n.n. to see if they are in cluster(s)
+      DO j = 1, n_nneigh(iatom)
+        jatom = nneigh_lst(j,iatom)
+ 
+        IF (InCluster(jatom) .EQV. .TRUE.) THEN !one of iatom's n.n. is in a cluster
+
+          IF (clusterID .NE. 0) THEN !another one of iatoms's n.n. is also in a cluster
+
+            IF (clusterID .NE. cluster_ID(jatom)) THEN !two of iatoms's n.n. belong to "different" clusters...combine
+
+              !keep lower cluster ID number
+              IF (clusterID .LT. cluster_ID(jatom)) THEN
+                clusterID_old = cluster_ID(jatom)
+              ELSE
+                clusterID_old = clusterID
+                clusterID = cluster_ID(jatom)
+              ENDIF
+
+              ! Merge clusters, keeping lower cluster ID number
+              DO k = 1,cluster_size(clusterID_old)
+                cluster_lst(cluster_size(clusterID) + k,clusterID) = cluster_lst(k,clusterID_old)
+                cluster_ID(cluster_lst(k,clusterID_old)) = clusterID
+              ENDDO
+              cluster_size(clusterID) = cluster_size(clusterID) + cluster_size(clusterID_old)
+              cluster_lst(:,clusterID_old) = 0 ! Clear old cluster data, reduce count
+              cluster_size(clusterID_old) = 0     
+              n_clusters = n_clusters - 1      
+
+              !Place LAST cluster in cluster list into newly empty slot
+              IF (clusterID_old .NE. (n_clusters+1)) THEN ! Must do move
+                DO k = 1,cluster_size(n_clusters+1)
+                 cluster_lst(k,clusterID_old) = cluster_lst(k,(n_clusters+1))
+                 cluster_ID(cluster_lst(k,clusterID_old)) = clusterID_old
+                ENDDO
+                cluster_size(clusterID_old) = cluster_size(n_clusters+1)  ! Clear data for moved cluster 
+                cluster_lst(:,(n_clusters+1)) = 0 
+                cluster_size(n_clusters+1) = 0    
+              ENDIF
+            ENDIF
+       
+          ELSE
+            clusterID = cluster_ID(jatom)
+          ENDIF
+
+        ENDIF
+      ENDDO  ! j neighbor
+
+      IF (clusterID .EQ. 0) then !if none of iatom's n.n. are in a cluster, imol begins new cluster
+        n_clusters = n_clusters + 1
+        clusterID = n_clusters
+      ENDIF
+
+      !Add iatom to the cluster
+      cluster_ID(iatom) = clusterID
+      cluster_size(clusterID) = cluster_size(clusterID) + 1
+      cluster_lst(cluster_size(clusterID),clusterID) = iatom !cluster_lst(cluster number, list of atoms in cluster)
+  
+  ENDDO ! iatom
+  
+  largest_cluster = MAXVAL(cluster_size)
+  
+END SUBROUTINE
 
 SUBROUTINE calc_q12_cluster(n_atoms,n_q12_neigh,q12_cutoff,crys_cutoff,n_bonds,box,x,nxtl,largest_cluster) 
 
